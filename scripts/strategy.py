@@ -65,7 +65,12 @@ def _num(x):
 
 def fetch_twse(day):
     url = f'https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={day:%Y%m%d}&type=ALLBUT0999&response=json'
-    j = requests.get(url, headers=H, timeout=30).json()
+    resp = requests.get(url, headers=H, timeout=30)
+    try:
+        j = resp.json()
+    except Exception:
+        raise RuntimeError(f'證交所回應不是 JSON（HTTP {resp.status_code}）：{resp.text[:300]!r}')
+    if not j.get('tables'): print(f"  證交所 {day.date()} stat={j.get('stat')!r} keys={list(j)[:8]}")
     for t in j.get('tables', []):
         f = [x.strip() for x in t.get('fields', [])]
         if '證券代號' in f and '收盤價' in f:

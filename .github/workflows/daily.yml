@@ -40,7 +40,9 @@ jobs:
       - run: pip install pandas numpy requests
 
       - name: 抓資料、算訊號
-        run: python scripts/update.py --state data/state.pkl --out site/signals.json
+        run: |
+          set -o pipefail
+          python scripts/update.py --state data/state.pkl --out site/signals.json 2>&1 | tee data/last_run.log
 
       - name: 存回狀態檔（data 分支只保留最新一版）
         run: |
