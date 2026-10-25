@@ -5,6 +5,9 @@ on:
     - cron: '35 7 * * 1-5'   # 台北 15:35
     - cron: '30 10 * * 1-5'  # 台北 18:30（補跑：前一次資料不完整或延遲時）
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/**', 'web/**', '.github/workflows/**']
 
 permissions:
   contents: write
