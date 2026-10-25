@@ -65,3 +65,15 @@ jobs:
           path: site
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: 保持排程啟用（GitHub 會停用 60 天沒動靜的排程）
+        if: github.event_name == 'schedule'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git fetch origin main --depth 1
+          git checkout -B main origin/main
+          date -u +%F > heartbeat.txt
+          git add heartbeat.txt
+          git commit -m "heartbeat $(date -u +%F)" || true
+          git push origin main || true
