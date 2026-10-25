@@ -1,5 +1,15 @@
-Traceback (most recent call last):
-  File "/home/runner/work/tw-strategy/tw-strategy/research/inst_download.py", line 17, in <module>
-    fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
-         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
-IndexError: list index out of range
+2018-01-29 上市 787 上櫃 464
+2018-03-07 上市 808 上櫃 480
+  重試 1 HTTPSConnectionPool(host='www.tpex.org.tw', port=443): Read timed out. (read timeout=40)
+2018-04-09 上市 815 上櫃 532
+2018-05-08 上市 801 上櫃 482
+2018-06-05 上市 811 上櫃 491
+2018-07-04 上市 882 上櫃 481
+2018-08-01 上市 881 上櫃 463
+2018-08-29 上市 872 上櫃 466
+2018-09-27 上市 815 上櫃 426
+2018-10-26 上市 808 上櫃 493
+2018-11-23 上市 792 上櫃 389
+  重試 1 ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2018-12-21 上市 807 上櫃 374
+完成 2018 交易日 245 筆數 318086 上櫃筆數 114682

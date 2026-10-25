@@ -1,5 +1,10 @@
-Traceback (most recent call last):
-  File "/home/runner/work/tw-strategy/tw-strategy/research/inst_download.py", line 17, in <module>
-    fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
-         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
-IndexError: list index out of range
+2026-01-29 上市 1052 上櫃 762
+2026-03-10 上市 1069 上櫃 780
+2026-04-09 上市 1071 上櫃 767
+2026-05-08 上市 1072 上櫃 807
+2026-06-05 上市 1077 上櫃 809
+2026-07-06 上市 1079 上櫃 819
+2026-08-04 上市 1086 上櫃 770
+2026-09-01 上市 1080 上櫃 779
+2026-10-01 上市 1082 上櫃 793
+完成 2026 交易日 194 筆數 361449 上櫃筆數 152889

@@ -1,5 +1,14 @@
-Traceback (most recent call last):
-  File "/home/runner/work/tw-strategy/tw-strategy/research/inst_download.py", line 17, in <module>
-    fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
-         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
-IndexError: list index out of range
+2019-01-29 上市 808 上櫃 384
+2019-03-11 上市 843 上櫃 500
+2019-04-10 上市 869 上櫃 554
+  重試 1 Expecting value: line 1 column 1 (char 0)
+2019-05-09 上市 853 上櫃 560
+2019-06-06 上市 848 上櫃 467
+2019-07-05 上市 858 上櫃 508
+2019-08-02 上市 844 上櫃 494
+2019-09-02 上市 809 上櫃 480
+2019-10-02 上市 773 上櫃 448
+2019-11-01 上市 759 上櫃 427
+2019-11-29 上市 923 上櫃 447
+2019-12-27 上市 929 上櫃 458
+完成 2019 交易日 242 筆數 319549 上櫃筆數 114975
