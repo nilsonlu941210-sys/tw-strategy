@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/runner/work/tw-strategy/tw-strategy/research/inst_download.py", line 17, in <module>
+    fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

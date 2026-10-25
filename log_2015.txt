@@ -1,0 +1,15 @@
+  重試 1 HTTPSConnectionPool(host='www.tpex.org.tw', port=443): Max retries exceeded with url: /www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date=2015/01/05&response=json (Caused by ConnectTimeoutError(<HTTPSConnection(host='www.tpex.org.tw', port=443) at 0x7b60bf38ff20>, 'Connection to www.tpex.org.tw timed out. (connect timeout=40)'))
+2015-01-30 上市 768 上櫃 361
+2015-03-10 上市 805 上櫃 409
+2015-04-09 上市 794 上櫃 430
+2015-05-08 上市 848 上櫃 415
+  重試 1 ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+2015-06-05 上市 859 上櫃 463
+2015-07-06 上市 833 上櫃 415
+2015-08-04 上市 855 上櫃 402
+2015-09-01 上市 844 上櫃 431
+2015-10-01 上市 799 上櫃 469
+2015-10-30 上市 855 上櫃 471
+2015-11-27 上市 773 上櫃 449
+2015-12-25 上市 766 上櫃 437
+完成 2015 交易日 244 筆數 301277 上櫃筆數 101403

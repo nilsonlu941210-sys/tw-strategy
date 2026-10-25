@@ -1,0 +1,18 @@
+2017-02-07 上市 798 上櫃 464
+2017-03-09 上市 796 上櫃 477
+2017-04-10 上市 855 上櫃 512
+  重試 1 HTTPSConnectionPool(host='www.tpex.org.tw', port=443): Read timed out. (read timeout=40)
+2017-05-09 上市 805 上櫃 528
+2017-06-08 上市 783 上櫃 490
+2017-07-06 上市 793 上櫃 473
+2017-08-03 上市 793 上櫃 472
+  重試 1 HTTPSConnectionPool(host='www.tpex.org.tw', port=443): Read timed out. (read timeout=40)
+2017-08-31 上市 809 上櫃 520
+2017-09-28 上市 816 上櫃 485
+2017-10-31 上市 798 上櫃 520
+2017-11-28 上市 791 上櫃 467
+Traceback (most recent call last):
+  File "/home/runner/work/tw-strategy/tw-strategy/research/inst_download.py", line 17, in <module>
+    fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range
