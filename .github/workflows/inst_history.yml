@@ -1,0 +1,43 @@
+name: 研究-下載歷史法人資料
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/inst_download.py']
+permissions:
+  contents: write
+jobs:
+  year:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - run: python research/inst_download.py ${{ matrix.year }} 2>&1 | tee log_${{ matrix.year }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inst-${{ matrix.year }}
+          path: |
+            inst_${{ matrix.year }}.csv.gz
+            log_${{ matrix.year }}.txt
+  merge:
+    needs: year
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - name: 存到 inst-data 分支
+        run: |
+          mkdir out && cp parts/* out/ && cd out && ls -la
+          git init -q && git checkout -q -b inst-data
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm "歷史法人資料 $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" inst-data
