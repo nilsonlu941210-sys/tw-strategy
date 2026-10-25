@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>台股每日訊號</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="台股訊號">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--mute:#5f6b7a;--line:#e3e7ec;--buy:#c0392b;--buy-bg:#fdeeec;--sell:#1e7a46;--sell-bg:#e8f5ee;--core:#2f5fb3;--core-bg:#eaf1fc;--warn:#9a6700;--warn-bg:#fff6dc;--btn:#14181f;--btn-ink:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--ink:#e8ecf1;--mute:#97a3b3;--line:#2a313b;--buy:#ff7b6b;--buy-bg:#3a1f1c;--sell:#5fd394;--sell-bg:#16301f;--core:#86aef5;--core-bg:#1a2740;--warn:#f2c14e;--warn-bg:#352b12;--btn:#e8ecf1;--btn-ink:#0e1116}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+header h1{font-size:20px;margin:4px 0 2px}header .sub{color:var(--mute);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0}
+.card h2{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;font-weight:600}
+.t-buy{background:var(--buy-bg);color:var(--buy)}.t-sell{background:var(--sell-bg);color:var(--sell)}.t-core{background:var(--core-bg);color:var(--core)}.t-warn{background:var(--warn-bg);color:var(--warn)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}
+.row .l b{font-size:16px}.row .l .code{color:var(--mute);font-size:13px;margin-left:6px}.row .l .why{color:var(--mute);font-size:13px}
+.row .r{text-align:right;white-space:nowrap}.row .r .big{font-weight:700;font-variant-numeric:tabular-nums}.row .r .small{color:var(--mute);font-size:13px}
+.empty{color:var(--mute);font-size:14px;padding:4px 0}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kpi div{background:var(--bg);border-radius:10px;padding:8px 10px}.kpi .k{color:var(--mute);font-size:12px}.kpi .v{font-weight:700;font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;color:var(--mute);font-size:14px;margin-top:6px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.hrow{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin:6px 0;align-items:center}
+button{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(--btn);color:var(--btn-ink);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}button.x{padding:6px 0;background:transparent;color:var(--mute);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.note{color:var(--mute);font-size:13px;margin:6px 0 0}
+.alert{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>台股每日訊號</h1>
+  <div class="sub" id="sub">載入中…</div>
+</header>
+
+<section class="card" id="summary"></section>
+<section class="card"><h2><span class="tag t-sell">賣出</span>明天要賣</h2><div id="sells"></div></section>
+<section class="card"><h2><span class="tag t-buy">買進</span>明天要買</h2><div id="buys"></div></section>
+<section class="card"><h2><span class="tag t-core">核心</span><span id="coreTitle">00881</span></h2><div id="core"></div></section>
+<section class="card"><h2>續抱</h2><div id="holds"></div></section>
+
+<section class="card">
+  <h2>我的持股與現金</h2>
+  <label class="note" for="cash">證券戶可用現金（元）</label>
+  <input id="cash" type="number" inputmode="numeric" placeholder="例如 50000">
+  <div style="margin-top:10px" id="hlist"></div>
+  <div class="btns">
+    <button class="ghost" id="addRow">＋ 新增一檔</button>
+    <button id="save">儲存並重新計算</button>
+  </div>
+  <p class="note">持股只存在這支手機（或這個瀏覽器）裡，不會上傳。00881 也要填進來。</p>
+  <details><summary>備份／還原持股</summary>
+    <div class="btns"><button class="ghost" id="exp">複製備份文字</button><button class="ghost" id="imp">貼上還原</button></div>
+  </details>
+</section>
+
+<section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
+
+<footer>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 8 檔、每檔 10%；00881 佔 20%，每 20 個交易日調回。<br>
+  訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
+</footer>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 0) => x == null || isNaN(x) ? '—' : Number(x).toLocaleString('zh-TW', {maximumFractionDigits: d, minimumFractionDigits: d});
+const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(0) + '%';
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d } catch (e) { return d } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} }
+};
+let H = store.get('holdings', [{c: '00881', s: 0}]);
+let CASH = store.get('cash', 0);
+let S = null;
+
+function renderEditor() {
+  $('#cash').value = CASH || '';
+  $('#hlist').innerHTML = H.map((h, i) => `<div class="hrow">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號" inputmode="numeric">
+    <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
+    <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
+}
+function readEditor() {
+  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; H[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim() });
+  H = H.filter(h => h.c);
+  CASH = +$('#cash').value || 0;
+  store.set('holdings', H); store.set('cash', CASH);
+}
+$('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); H.splice(+d, 1); renderEditor() } });
+$('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0}); renderEditor() };
+$('#save').onclick = () => { readEditor(); renderEditor(); render() };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+
+function row(name, code, why, big, small) {
+  return `<div class="row"><div class="l"><b>${name || code}</b><span class="code">${code}</span>${why ? `<div class="why">${why}</div>` : ''}</div><div class="r"><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}</div></div>`;
+}
+
+function render() {
+  if (!S) return;
+  const P = S.prices, core = S.params.core;
+  const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
+  let stockVal = 0, missing = [];
+  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core) missing.push(c) }
+  const total = CASH + stockVal;
+  const sat = Object.keys(held).filter(c => c !== core);
+  const sells = [], holds = [];
+  sat.forEach(c => {
+    const p = S.pool[c];
+    if (!p) sells.push({c, n: S.names[c], why: '已不在 500 檔股票池'});
+    else if (!p.hold) sells.push({c, n: p.n, why: p.why});
+    else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
+  });
+  const slots = Math.max(0, S.params.sat_n - holds.length);
+  const cands = S.buys.filter(b => !held[b.c]);
+  const buys = cands.slice(0, slots), extra = cands.slice(slots, slots + 6);
+  const amt = S.params.sat_w * total;
+
+  $('#sub').textContent = `資料日期 ${S.date} 收盤｜下一個交易日執行｜更新於 ${S.generated}`;
+  const coreVal = (held[core] || 0) * (P[core] || 0);
+  $('#summary').innerHTML = `<div class="kpi">
+    <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
+    <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length} / ${S.params.sat_n}</div></div>
+    <div><div class="k">00881 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
+    ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
+    ${held[core] && P[core] == null ? `<div class="alert">00881 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
+    ${total === 0 ? `<div class="alert">先在下方輸入現金和持股，才會算出買賣股數。</div>` : ''}`;
+
+  $('#sells').innerHTML = sells.length ? sells.map(s => row(s.n, s.c, s.why, `全部 ${fmt(held[s.c])} 股`, P[s.c] ? `收盤 ${fmt(P[s.c], 2)}` : '')).join('') : '<div class="empty">沒有要賣的</div>';
+  $('#buys').innerHTML = (buys.length ? buys.map(b => {
+    const sh = b.price ? Math.floor(amt / b.price) : 0;
+    return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(amt)} 元｜收盤 ${fmt(b.price, 2)}`);
+  }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : '8 個位子都滿了，不買新的'}</div>`)
+    + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '');
+
+  $('#coreTitle').textContent = `${core} ${S.core.name}`;
+  const cp = P[core];
+  let coreHtml = row(S.core.name, core, `目標 20%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
+  if (S.core.rebalance_today && total && cp) {
+    const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
+    coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
+  } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
+  $('#core').innerHTML = coreHtml;
+
+  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : '<div class="empty">目前沒有衛星持股</div>';
+  $('#hist').innerHTML = S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`).join('');
+}
+
+renderEditor();
+fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; render() })
+  .catch(() => { $('#sub').textContent = '讀取資料失敗，請稍後重新整理' });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
