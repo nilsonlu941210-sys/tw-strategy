@@ -36,6 +36,12 @@ while day <= today and added < 30:
         else:
             print(f'  {day.date()} 休市')
     day += pd.Timedelta(days=1)
+if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易日再抓一次
+    try:
+        chk_tw = fetch_twse(last); time.sleep(4); chk_tp = fetch_tpex(last)
+        print(f'  檢查：{last.date()} 證交所 {0 if chk_tw is None else len(chk_tw)} 筆、櫃買 {0 if chk_tp is None else len(chk_tp)} 筆')
+    except Exception as e:
+        print(f'  檢查失敗：{e}')
 update_revenue(st, today)
 
 # ---- 產生網頁資料 ----
