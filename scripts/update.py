@@ -40,6 +40,12 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
     try:
         chk_tw = fetch_twse(last); time.sleep(4); chk_tp = fetch_tpex(last)
         print(f'  檢查：{last.date()} 證交所 {0 if chk_tw is None else len(chk_tw)} 筆、櫃買 {0 if chk_tp is None else len(chk_tp)} 筆')
+        both = pd.concat([chk_tw, chk_tp]).drop_duplicates('code').set_index('code')
+        cl = st['close'].iloc[-1]; m = both.index.intersection(cl.dropna().index)
+        diff = (both.loc[m, 'close'] - cl[m]).abs()
+        print(f'  檢查：收盤價與已存資料相符 {int((diff < 1e-6).sum())}/{len(m)} 檔')
+        for c in ('2330', '2454', '6214', '3081', '00881'):
+            if c in both.index: print(f"    {c} 收盤 {both.loc[c, 'close']} 漲跌 {both.loc[c, 'chg']} 成交金額 {both.loc[c, 'money']:,.0f} 已存收盤 {cl.get(c)}")
     except Exception as e:
         print(f'  檢查失敗：{e}')
 update_revenue(st, today)
