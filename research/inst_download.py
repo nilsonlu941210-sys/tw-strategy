@@ -14,7 +14,7 @@ while d.year == Y and d <= today:
         j = get(f'https://www.twse.com.tw/rwd/zh/fund/T86?date={d:%Y%m%d}&selectType=ALLBUT0999&response=json'); time.sleep(3.5)
         if j and j.get('stat') == 'OK' and j.get('data'):
             f = [x.strip() for x in j['fields']]
-            fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and '自營商' not in x][0]
+            fi = [i for i, x in enumerate(f) if x.startswith('外') and '買賣超' in x and not x.startswith('外資自營商')][0]
             ti = f.index('投信買賣超股數'); di = f.index('自營商買賣超股數')
             n1 = 0
             for r in j['data']:
