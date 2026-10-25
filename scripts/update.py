@@ -44,6 +44,9 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
         cl = st['close'].iloc[-1]; m = both.index.intersection(cl.dropna().index)
         diff = (both.loc[m, 'close'] - cl[m]).abs()
         print(f'  檢查：收盤價與已存資料相符 {int((diff < 1e-6).sum())}/{len(m)} 檔')
+        if CORE in both.index and (CORE not in st['close'].columns or pd.isna(st['close'][CORE].iloc[-1])):
+            st['close'].loc[st['close'].index[-1], CORE] = both.loc[CORE, 'close']; st['names'][CORE] = '國泰台灣科技龍頭'
+            print(f"  補上 {CORE} 價格 {both.loc[CORE, 'close']}")
         for c in ('2330', '2454', '6214', '3081', '00881'):
             if c in both.index: print(f"    {c} 收盤 {both.loc[c, 'close']} 漲跌 {both.loc[c, 'chg']} 成交金額 {both.loc[c, 'money']:,.0f} 已存收盤 {cl.get(c)}")
     except Exception as e:
