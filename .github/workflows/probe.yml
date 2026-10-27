@@ -1,0 +1,24 @@
+name: 研究-資料來源探測
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/probe.py']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests
+      - run: python research/probe.py 2>&1 | tee probe.log
+      - name: 存到 probe 分支
+        run: |
+          mkdir out && cp probe.log out/ && cd out
+          git init -q && git checkout -q -b probe
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm probe
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" probe
