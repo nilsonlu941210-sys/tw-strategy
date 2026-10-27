@@ -54,6 +54,8 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <label class="note" for="cash">證券戶可用現金（元）</label>
   <input id="cash" type="number" inputmode="numeric" placeholder="例如 50000">
   <div style="margin-top:10px" id="hlist"></div>
+  <label class="note" for="nobuy" style="display:block;margin-top:12px">不買名單（例如正在被公開收購、全額交割、停止交易的股票；代號用逗號分開）</label>
+  <input id="nobuy" placeholder="例如 6214">
   <div class="btns">
     <button class="ghost" id="addRow">＋ 新增一檔</button>
     <button id="save">儲存並重新計算</button>
@@ -81,10 +83,12 @@ const store = {
 };
 let H = store.get('holdings', [{c: '00881', s: 0}]);
 let CASH = store.get('cash', 0);
+let NOBUY = store.get('nobuy', []);
 let S = null;
 
 function renderEditor() {
   $('#cash').value = CASH || '';
+  $('#nobuy').value = NOBUY.join(', ');
   $('#hlist').innerHTML = H.map((h, i) => `<div class="hrow">
     <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號" inputmode="numeric">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
@@ -94,13 +98,14 @@ function readEditor() {
   document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; H[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim() });
   H = H.filter(h => h.c);
   CASH = +$('#cash').value || 0;
+  NOBUY = $('#nobuy').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('nobuy', NOBUY);
   store.set('holdings', H); store.set('cash', CASH);
 }
 $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); H.splice(+d, 1); renderEditor() } });
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0}); renderEditor() };
 $('#save').onclick = () => { readEditor(); renderEditor(); render() };
-$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
-$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, NOBUY}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; NOBUY = o.NOBUY || []; store.set('nobuy', NOBUY); store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
 
 function row(name, code, why, big, small) {
   return `<div class="row"><div class="l"><b>${name || code}</b><span class="code">${code}</span>${why ? `<div class="why">${why}</div>` : ''}</div><div class="r"><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}</div></div>`;
@@ -122,7 +127,8 @@ function render() {
     else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
   });
   const slots = Math.max(0, S.params.sat_n - holds.length);
-  const cands = S.buys.filter(b => !held[b.c]);
+  const cands = S.buys.filter(b => !held[b.c] && !NOBUY.includes(b.c));
+  const blocked = S.buys.filter(b => NOBUY.includes(b.c));
   const buys = cands.slice(0, slots), extra = cands.slice(slots, slots + 6);
   const amt = S.params.sat_w * total;
 
@@ -141,7 +147,8 @@ function render() {
     const sh = b.price ? Math.floor(amt / b.price) : 0;
     return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(amt)} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : '8 個位子都滿了，不買新的'}</div>`)
-    + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '');
+    + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
+    + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c).join('、')}</p>` : '');
 
   $('#coreTitle').textContent = `${core} ${S.core.name}`;
   const cp = P[core];
