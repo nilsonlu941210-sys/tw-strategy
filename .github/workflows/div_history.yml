@@ -1,0 +1,24 @@
+name: 研究-下載除權息資料
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/div_download.py']
+permissions:
+  contents: write
+jobs:
+  dl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - run: python research/div_download.py 2>&1 | tee div_log.txt
+      - name: 存到 div-data 分支
+        run: |
+          mkdir out && cp dividends.csv.gz div_log.txt out/ && cd out
+          git init -q && git checkout -q -b div-data
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm "除權息資料 $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" div-data
