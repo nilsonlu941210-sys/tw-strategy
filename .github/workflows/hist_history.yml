@@ -1,0 +1,47 @@
+name: 研究-下載 2005–2013 歷史資料
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/hist_download.py']
+permissions:
+  contents: write
+jobs:
+  part:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        job: ['twse 2005', 'twse 2006', 'twse 2007', 'twse 2008', 'twse 2009', 'twse 2010', 'twse 2011', 'twse 2012', 'twse 2013',
+              'tpex 2007', 'tpex 2008', 'tpex 2009', 'tpex 2010', 'tpex 2011', 'tpex 2012', 'tpex 2013', 'rev', 'div']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - id: n
+        run: echo "tag=$(echo '${{ matrix.job }}' | tr ' ' '_')" >> $GITHUB_OUTPUT
+      - run: python research/hist_download.py ${{ matrix.job }} 2>&1 | tee log_${{ steps.n.outputs.tag }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hist-${{ steps.n.outputs.tag }}
+          path: |
+            hist_*.csv.gz
+            log_*.txt
+  merge:
+    needs: part
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - name: 存到 hist-data 分支
+        run: |
+          git clone -q --depth 1 -b hist-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" out || (mkdir out && cd out && git init -q && git checkout -q -b hist-data)
+          cp parts/* out/ && cd out && ls -la
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm "2005–2013 歷史資料 $(date -u +%F)"
+          git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" hist-data
