@@ -1,0 +1,4 @@
+  重試 1 https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2013/01/16&type=EW&response=json Expecting value: line 1 column 1 (char 0)
+2013-03-22 50 31697
+2013-06-05 100 63528
+完成 tpex 2013 交易日 116 筆 73791

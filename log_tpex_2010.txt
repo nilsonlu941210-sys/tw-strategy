@@ -1,0 +1,7 @@
+2010-03-23 50 27193
+2010-06-02 100 54582
+2010-08-12 150 82319
+2010-10-22 200 110016
+  重試 1 https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2010/12/30&type=EW&response=json Expecting value: line 1 column 1 (char 0)
+2010-12-31 250 137946
+完成 tpex 2010 交易日 250 筆 137946
