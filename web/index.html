@@ -153,7 +153,7 @@ function render() {
     else if (total && afford < sh) { sh = afford; short = true; note = sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'; }
     avail -= sh * (b.price || 0) * 1.0004;
     return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
-  }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : '8 個位子都滿了，不買新的'}</div>`)
+  }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
     + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c).join('、')}</p>` : '');
 
