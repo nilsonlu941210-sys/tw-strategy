@@ -56,6 +56,8 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <div style="margin-top:10px" id="hlist"></div>
   <label class="note" for="nobuy" style="display:block;margin-top:12px">不買名單（例如正在被公開收購、全額交割、停止交易的股票；代號用逗號分開）</label>
   <input id="nobuy" placeholder="例如 6214">
+  <label class="note" for="fixed" style="display:block;margin-top:12px">固定持有（永遠不會叫你賣、佔 1 個名額、算進總資產；代號用逗號分開）</label>
+  <input id="fixed" placeholder="例如 2330">
   <div class="btns">
     <button class="ghost" id="addRow">＋ 新增一檔</button>
     <button id="save">儲存並重新計算</button>
@@ -84,11 +86,13 @@ const store = {
 let H = store.get('holdings', [{c: '00881', s: 0}]);
 let CASH = store.get('cash', 0);
 let NOBUY = store.get('nobuy', []);
+let FIXED = store.get('fixed', ['2330']);
 let S = null;
 
 function renderEditor() {
   $('#cash').value = CASH || '';
   $('#nobuy').value = NOBUY.join(', ');
+  $('#fixed').value = FIXED.join(', ');
   $('#hlist').innerHTML = H.map((h, i) => `<div class="hrow">
     <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號" inputmode="numeric">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
@@ -99,13 +103,14 @@ function readEditor() {
   H = H.filter(h => h.c);
   CASH = +$('#cash').value || 0;
   NOBUY = $('#nobuy').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('nobuy', NOBUY);
+  FIXED = $('#fixed').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('fixed', FIXED);
   store.set('holdings', H); store.set('cash', CASH);
 }
 $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); H.splice(+d, 1); renderEditor() } });
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0}); renderEditor() };
 $('#save').onclick = () => { readEditor(); renderEditor(); render() };
-$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, NOBUY}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
-$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; NOBUY = o.NOBUY || []; store.set('nobuy', NOBUY); store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, NOBUY, FIXED}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; NOBUY = o.NOBUY || []; store.set('nobuy', NOBUY); FIXED = o.FIXED || FIXED; store.set('fixed', FIXED); store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
 
 function row(name, code, why, big, small) {
   return `<div class="row"><div class="l"><b>${name || code}</b><span class="code">${code}</span>${why ? `<div class="why">${why}</div>` : ''}</div><div class="r"><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}</div></div>`;
@@ -118,7 +123,8 @@ function render() {
   let stockVal = 0, missing = [];
   for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core) missing.push(c) }
   const total = CASH + stockVal;
-  const sat = Object.keys(held).filter(c => c !== core);
+  const sat = Object.keys(held).filter(c => c !== core && !FIXED.includes(c));
+  const fixedHeld = Object.keys(held).filter(c => c !== core && FIXED.includes(c));
   const sells = [], holds = [];
   sat.forEach(c => {
     const p = S.pool[c];
@@ -126,7 +132,7 @@ function render() {
     else if (!p.hold) sells.push({c, n: p.n, why: p.why});
     else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
   });
-  const slots = Math.max(0, S.params.sat_n - holds.length);
+  const slots = Math.max(0, S.params.sat_n - holds.length - fixedHeld.length);
   const cands = S.buys.filter(b => !held[b.c] && !NOBUY.includes(b.c));
   const blocked = S.buys.filter(b => NOBUY.includes(b.c));
   const buys = cands.slice(0, slots), extra = cands.slice(slots, slots + 6);
@@ -136,7 +142,7 @@ function render() {
   const coreVal = (held[core] || 0) * (P[core] || 0);
   $('#summary').innerHTML = `<div class="kpi">
     <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
-    <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length} / ${S.params.sat_n}</div></div>
+    <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
     <div><div class="k">00881 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
     ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
     ${held[core] && P[core] == null ? `<div class="alert">00881 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
@@ -170,7 +176,8 @@ function render() {
   }
   $('#core').innerHTML = coreHtml;
 
-  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : '<div class="empty">目前沒有衛星持股</div>';
+  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
+  $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   $('#hist').innerHTML = S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`).join('');
 }
 
