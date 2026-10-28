@@ -18,13 +18,8 @@ def show(name, url, enc=None):
         if isinstance(j.get('data'), list): print(' data', len(j['data']), j['data'][:2], j.get('fields'))
     except Exception as e: print(name, '錯誤', repr(e))
     time.sleep(4)
-for d in ('20050701', '20080102', '20121228'):
-    show(f'證交所 MI_INDEX {d}', f'https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={d}&type=ALLBUT0999&response=json')
-for d in ('2007/01/02', '2008/01/02', '2012/12/28'):
+for d in ('2005/07/01', '2006/03/01', '2006/12/01', '2007/01/03', '2007/03/01', '2007/04/02', '2007/06/01', '2007/07/02', '2007/10/01'):
     show(f'櫃買新版 {d}', f'https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date={d}&type=EW&response=json')
-show('櫃買舊版 96/01/02', 'https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&d=96/01/02&o=json')
-show('櫃買舊版 94/07/01', 'https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&d=94/07/01&o=json')
-for host in ('mops.twse.com.tw', 'mopsov.twse.com.tw'):
-    for mk in ('sii', 'otc'):
-        for f in ('t21sc03_96_1.html', 't21sc03_96_1_0.html', 't21sc03_101_12.html', 't21sc03_102_1_0.html'):
-            show(f'月營收 {host} {mk} {f}', f'https://{host}/nas/t21/{mk}/{f}', enc='big5')
+show('櫃買新版 AL 2007/01/03', 'https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2007/01/03&type=AL&response=json')
+show('櫃買 個股日成交 2006', 'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?code=5483&date=2006/03/01&response=json')
+show('櫃買 dailyQ 舊', 'https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQ?date=2006/03/01&response=json')
