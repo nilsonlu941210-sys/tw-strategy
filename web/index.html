@@ -143,9 +143,16 @@ function render() {
     ${total === 0 ? `<div class="alert">先在下方輸入現金和持股，才會算出買賣股數。</div>` : ''}`;
 
   $('#sells').innerHTML = sells.length ? sells.map(s => row(s.n, s.c, s.why, `全部 ${fmt(held[s.c])} 股`, P[s.c] ? `收盤 ${fmt(P[s.c], 2)}` : '')).join('') : '<div class="empty">沒有要賣的</div>';
+  // 可用現金 = 現金 + 明天賣出的預估款（扣手續費與證交稅），依順序扣
+  let avail = CASH + sells.reduce((a, x) => a + (held[x.c] || 0) * (P[x.c] || 0) * (1 - 0.0034), 0);
+  let short = false;
   $('#buys').innerHTML = (buys.length ? buys.map(b => {
-    const sh = b.price ? Math.floor(amt / b.price) : 0;
-    return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(amt)} 元｜收盤 ${fmt(b.price, 2)}`);
+    let sh = b.price ? Math.floor(amt / b.price) : 0, note = '';
+    const afford = b.price ? Math.floor(Math.max(0, avail) / (b.price * 1.0004)) : 0;
+    if (total && short) { sh = 0; note = '（現金不足，先跳過）'; }
+    else if (total && afford < sh) { sh = afford; short = true; note = sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'; }
+    avail -= sh * (b.price || 0) * 1.0004;
+    return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : '8 個位子都滿了，不買新的'}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
     + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c).join('、')}</p>` : '');
@@ -157,6 +164,10 @@ function render() {
     const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
     coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
   } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
+  if (total && cp) {
+    const w = coreVal / total, gap = (w - S.params.core_w) * total;
+    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? '這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 20%。' : ''}</div>`;
+  }
   $('#core').innerHTML = coreHtml;
 
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : '<div class="empty">目前沒有衛星持股</div>';
