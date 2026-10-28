@@ -69,7 +69,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 <section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
 
 <footer>
-  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 8 檔、每檔 10%；00881 佔 20%，每 20 個交易日調回。<br>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔 10%；00881 佔 30%，每 20 個交易日調回。<br>
   訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
 </footer>
 </main>
@@ -159,14 +159,14 @@ function render() {
 
   $('#coreTitle').textContent = `${core} ${S.core.name}`;
   const cp = P[core];
-  let coreHtml = row(S.core.name, core, `目標 20%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
+  let coreHtml = row(S.core.name, core, `目標 ${Math.round(S.params.core_w * 100)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
   if (S.core.rebalance_today && total && cp) {
     const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
     coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
   } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
   if (total && cp) {
     const w = coreVal / total, gap = (w - S.params.core_w) * total;
-    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? '這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 20%。' : ''}</div>`;
+    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? '這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${Math.round(S.params.core_w * 100)}%。' : ''}</div>`;
   }
   $('#core').innerHTML = coreHtml;
 

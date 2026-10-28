@@ -4,7 +4,7 @@ import numpy as np, pandas as pd, requests, warnings
 warnings.filterwarnings('ignore')
 
 # ---------------- 策略參數（已驗證，請勿修改） ----------------
-POOL_N, SAT_N, SAT_W, CORE, CORE_W, CORE_K = 500, 8, 0.10, '00881', 0.20, 20
+POOL_N, SAT_N, SAT_W, CORE, CORE_W, CORE_K = 500, 7, 0.10, '00881', 0.30, 20   # 2026-10-28 使用者改為 7 檔＋核心 30%
 BRK_LB, HOLD_H250, HOLD_RNH = 60, 0.85, -0.20
 EXCLUDE = {'2330'}
 KEEP_ROWS = 320
