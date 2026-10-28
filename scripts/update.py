@@ -66,13 +66,13 @@ for c in st['pool']:
     if c not in st['adj'].columns: continue
     ok = bool(s['HOLD'].get(c, False))
     why = '' if ok else ('營收轉弱' if not (s['rnh'].get(c, np.nan) > HOLD_RNH) else ('股價離一年高點超過 15%' if not (s['h250'].get(c, np.nan) >= HOLD_H250) else '當天無成交或資料不足'))
-    pool_info[c] = dict(n=nm(c), hold=ok, why=why, rnh=f(s['rnh'].get(c)), h250=f(s['h250'].get(c)))
+    pool_info[c] = dict(n=nm(c), hold=ok, why=why, rnh=f(s['rnh'].get(c)), h250=f(s['h250'].get(c)), sc=f(s['score'].get(c), 3))
 hist = st.get('history', [])
 today_rec = dict(date=str(d.date()), buys=[dict(c=c, n=nm(c)) for c in buys.index[:12]])
 hist = [h for h in hist if h['date'] != today_rec['date']] + [today_rec]; st['history'] = hist[-30:]
 out = dict(
     date=str(d.date()), generated=now.strftime('%Y-%m-%d %H:%M'), pool_quarter=st['pool_quarter'], pool_size=len(st['pool']),
-    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB),
+    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K),
     core=dict(code=CORE, name=nm(CORE) or '國泰台灣科技龍頭', price=f(px.get(CORE), 2), days_since=n_since % CORE_K, rebalance_today=(n_since % CORE_K == 0)),
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
     pool=pool_info,

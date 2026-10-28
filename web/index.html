@@ -132,9 +132,23 @@ function render() {
     else if (!p.hold) sells.push({c, n: p.n, why: p.why});
     else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
   });
-  const slots = Math.max(0, S.params.sat_n - holds.length - fixedHeld.length);
+  let slots = Math.max(0, S.params.sat_n - holds.length - fixedHeld.length);
   const cands = S.buys.filter(b => !held[b.c] && !NOBUY.includes(b.c));
   const blocked = S.buys.filter(b => NOBUY.includes(b.c));
+  // 換股：位子滿時，若今天的第 1 名在最近 5 個交易日中有 swap_k 天都是第 1 名（排除已持有、不買名單），換掉分數最低的持股
+  let swap = null;
+  const K = S.params.swap_k || 0, hist5 = (S.history || []).slice(-5);
+  if (K && slots === 0 && holds.length && cands.length && hist5.length && hist5[hist5.length - 1].date === S.date) {
+    const top = h => (h.buys.find(b => !held[b.c] && !NOBUY.includes(b.c) && !FIXED.includes(b.c)) || {}).c;
+    const c1 = cands[0].c, cnt = hist5.filter(h => top(h) === c1).length;
+    if (cnt >= K) {
+      const w = holds.reduce((a, x) => ((S.pool[x.c].sc ?? -9) < (S.pool[a.c].sc ?? -9) ? x : a));
+      swap = {buy: cands[0], sell: w, cnt};
+      holds.splice(holds.indexOf(w), 1);
+      sells.push({c: w.c, n: w.n, why: `換股：讓位給 ${cands[0].n || c1}（最近 5 天有 ${cnt} 天是第 1 名），這檔是持股中分數最低的`});
+      slots = 1;
+    }
+  }
   const buys = cands.slice(0, slots), extra = cands.slice(slots, slots + 6);
   const amt = S.params.sat_w * total;
 
@@ -158,7 +172,7 @@ function render() {
     if (total && short) { sh = 0; note = '（現金不足，先跳過）'; }
     else if (total && afford < sh) { sh = afford; short = true; note = sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'; }
     avail -= sh * (b.price || 0) * 1.0004;
-    return row(b.n, b.c, `營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
+    return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
     + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c).join('、')}</p>` : '');
