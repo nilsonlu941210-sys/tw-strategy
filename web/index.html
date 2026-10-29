@@ -56,6 +56,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <div style="margin-top:10px" id="hlist"></div>
   <label class="note" for="nobuy" style="display:block;margin-top:12px">不買名單（例如正在被公開收購、全額交割、停止交易的股票；代號用逗號分開）</label>
   <input id="nobuy" placeholder="例如 6214">
+  <p class="note" id="autonote"></p>
   <label class="note" for="fixed" style="display:block;margin-top:12px">固定持有（永遠不會叫你賣、佔 1 個名額、算進總資產；代號用逗號分開）</label>
   <input id="fixed" placeholder="例如 2330">
   <div class="btns">
@@ -133,13 +134,14 @@ function render() {
     else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
   });
   let slots = Math.max(0, S.params.sat_n - holds.length - fixedHeld.length);
-  const cands = S.buys.filter(b => !held[b.c] && !NOBUY.includes(b.c));
-  const blocked = S.buys.filter(b => NOBUY.includes(b.c));
+  const AUTO = S.auto_nobuy || {}, no = c => NOBUY.includes(c) || AUTO[c];
+  const cands = S.buys.filter(b => !held[b.c] && !no(b.c));
+  const blocked = S.buys.filter(b => no(b.c));
   // 換股：位子滿時，若今天的第 1 名在最近 5 個交易日中有 swap_k 天都是第 1 名（排除已持有、不買名單），換掉分數最低的持股
   let swap = null;
   const K = S.params.swap_k || 0, hist5 = (S.history || []).slice(-5);
   if (K && slots === 0 && holds.length && cands.length && hist5.length && hist5[hist5.length - 1].date === S.date) {
-    const top = h => (h.buys.find(b => !held[b.c] && !NOBUY.includes(b.c) && !FIXED.includes(b.c)) || {}).c;
+    const top = h => (h.buys.find(b => !held[b.c] && !no(b.c) && !FIXED.includes(b.c)) || {}).c;
     const c1 = cands[0].c, cnt = hist5.filter(h => top(h) === c1).length;
     if (cnt >= K) {
       const w = holds.reduce((a, x) => ((S.pool[x.c].sc ?? -9) < (S.pool[a.c].sc ?? -9) ? x : a));
@@ -175,8 +177,10 @@ function render() {
     return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
-    + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c).join('、')}</p>` : '');
+    + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c + (AUTO[b.c] && !NOBUY.includes(b.c) ? `（${AUTO[b.c]}）` : '')).join('、')}</p>` : '');
 
+  const autoHeld = Object.keys(AUTO).filter(c => held[c]);
+  $('#autonote').innerHTML = `系統每天自動排除 ${Object.keys(AUTO).length} 檔（公開收購、全額交割、暫停/停止交易、即將下市），不用手動輸入。` + (autoHeld.length ? `<br><b>你持有的 ${autoHeld.map(c => (S.names[c] || '') + ' ' + c + '（' + AUTO[c] + '）').join('、')} 在名單上，要不要賣請自己判斷。</b>` : '');
   $('#coreTitle').textContent = `${core} ${S.core.name}`;
   const cp = P[core];
   let coreHtml = row(S.core.name, core, `目標 ${Math.round(S.params.core_w * 100)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');

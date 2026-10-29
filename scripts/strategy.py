@@ -154,3 +154,49 @@ def update_revenue(st, today):
     print(f"  營收：最新月份 {new.revenue_year.max()}-{new[new.revenue_year == new.revenue_year.max()].revenue_month.max():02d}，{new.stock_id.nunique()} 家")
 
 # ---------------- 主程式 ----------------
+
+# ---------------- 硬事件自動不買（2026-10-29 使用者決定：只自動排除，不自動賣） ----------------
+def _roc(s):
+    s = re.sub(r'\D', '', str(s))
+    if len(s) == 7: return pd.Timestamp(int(s[:3]) + 1911, int(s[3:5]), int(s[5:7]))
+    if len(s) == 8: return pd.Timestamp(s)
+    return None
+
+def update_hard_events(st, today):
+    """公開收購對象、全額交割/變更交易、暫停或停止交易、即將終止上市 → 自動不買名單。
+    公開收購從每日重大訊息累積（保留 90 天）；其餘每天依官方清單重建。任何來源失敗都只略過。"""
+    tw, tp = 'https://openapi.twse.com.tw/v1', 'https://www.tpex.org.tw/openapi/v1'
+    get = lambda u: requests.get(u, headers=H, timeout=60).json()
+    cur = {}
+    def add(code, why):
+        code = str(code).strip()
+        if re.fullmatch(r'[1-9]\d{3}', code): cur.setdefault(code, why)
+    jobs = [
+        (tw + '/exchangeReport/TWT85U', lambda x: [add(r.get('Code'), '變更交易（全額交割）') for r in x]),
+        (tw + '/exchangeReport/TWTAWU', lambda x: [add(r.get('Code'), '暫停交易') for r in x if not (_roc(r.get('TradingResumptionDate')) and _roc(r.get('TradingResumptionDate')) <= today)]),
+        (tw + '/opendata/t187ap26_L', lambda x: [add(r.get('公司代號'), '停止買賣') for r in x]),
+        (tw + '/company/suspendListingCsvAndHtml', lambda x: [add(r.get('Code'), '即將終止上市') for r in x if _roc(r.get('DelistingDate')) and _roc(r.get('DelistingDate')) >= today]),
+        (tp + '/tpex_cmode', lambda x: [add(r.get('SecuritiesCompanyCode'), '變更交易（全額交割）' if r.get('AlteredTrading', '').strip() else ('管理股票' if r.get('ManagedStock', '').strip() else '停止交易'))
+                                         for r in x if any(str(r.get(k, '')).strip() for k in ('AlteredTrading', 'ManagedStock', 'SuspensionOfTrading'))]),
+        (tp + '/tpex_spendi_today', lambda x: [add(r.get('SecuritiesCompanyCode'), '暫停交易') for r in x if str(r.get('暫停交易', '')).strip()]),
+        (tp + '/mopsfin_t187ap26_O', lambda x: [add(r.get('SecuritiesCompanyCode'), '停止買賣') for r in x]),
+    ]
+    for url, fn in jobs:
+        try: fn(get(url))
+        except Exception as e: print('  硬事件來源失敗：', url, e)
+    # 公開收購：被收購公司自己發的重大訊息（主旨含「公開收購本公司」）
+    to = st.get('tender', {})
+    for url, ck in ((tw + '/opendata/t187ap04_L', '公司代號'), (tp + '/mopsfin_t187ap04_O', 'SecuritiesCompanyCode')):
+        try:
+            for r in get(url):
+                subj = re.sub(r'\s', '', str(r.get('主旨 ', r.get('主旨', ''))))
+                if '公開收購' in subj and ('收購本公司' in subj or '本公司股份' in subj or '本公司普通股' in subj):
+                    c = str(r.get(ck, '')).strip(); d = _roc(r.get('發言日期')) or today
+                    if re.fullmatch(r'[1-9]\d{3}', c): to[c] = str(d.date()); print('  公開收購對象：', c, r.get('公司名稱', r.get('CompanyName')), subj[:40])
+        except Exception as e: print('  重大訊息來源失敗：', url, e)
+    to = {c: d for c, d in to.items() if pd.Timestamp(d) >= today - pd.Timedelta(days=90)}
+    st['tender'] = to
+    for c, d in to.items(): cur.setdefault(c, f'公開收購中，{d} 公告')
+    st['hard_events'] = cur
+    print(f'  自動不買：{len(cur)} 檔', dict(list(cur.items())[:10]))
+    return cur

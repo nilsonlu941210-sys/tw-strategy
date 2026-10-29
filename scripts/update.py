@@ -52,6 +52,8 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
     except Exception as e:
         print(f'  檢查失敗：{e}')
 update_revenue(st, today)
+try: update_hard_events(st, pd.Timestamp(today))
+except Exception as e: print('  硬事件更新失敗：', e)
 
 # ---- 產生網頁資料 ----
 s = signals(st); d = s['date']; px = st['close'].ffill().iloc[-1]
@@ -76,6 +78,7 @@ out = dict(
     core=dict(code=CORE, name=nm(CORE) or '國泰台灣科技龍頭', price=f(px.get(CORE), 2), days_since=n_since % CORE_K, rebalance_today=(n_since % CORE_K == 0)),
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
     pool=pool_info,
+    auto_nobuy=st.get('hard_events', {}),
     prices={c: f(v, 2) for c, v in px.dropna().items()},
     names={c: nm(c) for c in px.dropna().index},
     history=st['history'], added_days=log,
