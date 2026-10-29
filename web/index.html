@@ -143,11 +143,12 @@ function render() {
   if (K && slots === 0 && holds.length && cands.length && hist5.length && hist5[hist5.length - 1].date === S.date) {
     const top = h => (h.buys.find(b => !held[b.c] && !no(b.c) && !FIXED.includes(b.c)) || {}).c;
     const c1 = cands[0].c, cnt = hist5.filter(h => top(h) === c1).length;
-    if (cnt >= K) {
-      const w = holds.reduce((a, x) => ((S.pool[x.c].sc ?? -9) < (S.pool[a.c].sc ?? -9) ? x : a));
+    const w = holds.reduce((a, x) => ((S.pool[x.c].sc ?? -9) < (S.pool[a.c].sc ?? -9) ? x : a));
+    const gap = (cands[0].score ?? -9) - (S.pool[w.c].sc ?? -9), M = S.params.swap_m || 0;
+    if (cnt >= K && gap >= M) {
       swap = {buy: cands[0], sell: w, cnt};
       holds.splice(holds.indexOf(w), 1);
-      sells.push({c: w.c, n: w.n, why: `換股：讓位給 ${cands[0].n || c1}（最近 5 天有 ${cnt} 天是第 1 名），這檔是持股中分數最低的`});
+      sells.push({c: w.c, n: w.n, why: `換股：讓位給 ${cands[0].n || c1}（最近 5 天有 ${cnt} 天是第 1 名，分數高出 ${gap.toFixed(1)}，門檻 ${M}），這檔是持股中分數最低的`});
       slots = 1;
     }
   }

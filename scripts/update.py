@@ -74,7 +74,7 @@ today_rec = dict(date=str(d.date()), buys=[dict(c=c, n=nm(c)) for c in buys.inde
 hist = [h for h in hist if h['date'] != today_rec['date']] + [today_rec]; st['history'] = hist[-30:]
 out = dict(
     date=str(d.date()), generated=now.strftime('%Y-%m-%d %H:%M'), pool_quarter=st['pool_quarter'], pool_size=len(st['pool']),
-    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K),
+    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K, swap_m=SWAP_M),
     core=dict(code=CORE, name=nm(CORE) or '國泰台灣科技龍頭', price=f(px.get(CORE), 2), days_since=n_since % CORE_K, rebalance_today=(n_since % CORE_K == 0)),
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
     pool=pool_info,
