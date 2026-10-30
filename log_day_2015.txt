@@ -1,0 +1,5 @@
+2015-03-24 50 {'date': datetime.date(2015, 3, 24), 'dealer_net': 317720484.0, 'trust_net': -1144177962.0, 'foreign_net': -902204867.0, 'total_net': -1728662345.0, 'margin_units': 11849096.0, 'short_units': 367170.0, 'margin_amt': 213007865.0}
+2015-06-05 100 {'date': datetime.date(2015, 6, 5), 'dealer_net': -113200809.0, 'trust_net': -535647048.0, 'foreign_net': -9932492843.0, 'total_net': -10581340700.0, 'margin_units': 11103580.0, 'short_units': 382186.0, 'margin_amt': 199319765.0}
+2015-08-18 150 {'date': datetime.date(2015, 8, 18), 'dealer_net': -1185103431.0, 'trust_net': -180048852.0, 'foreign_net': -128539871.0, 'total_net': -1493692154.0, 'margin_units': 9693481.0, 'short_units': 495625.0, 'margin_amt': 152004626.0}
+2015-10-30 200 {'date': datetime.date(2015, 10, 30), 'dealer_net': 182159878.0, 'trust_net': -491777114.0, 'foreign_net': -397866530.0, 'total_net': -707483766.0, 'margin_units': 8967077.0, 'short_units': 528159.0, 'margin_amt': 140679165.0}
+完成 2015 244

@@ -1,0 +1,5 @@
+2011-03-22 50 {'date': datetime.date(2011, 3, 22), 'dealer_net': -202962039.0, 'trust_net': 579511339.0, 'foreign_net': -6172627059.0, 'total_net': -5796077759.0, 'margin_units': 15828215.0, 'short_units': 439468.0, 'margin_amt': 302223627.0}
+2011-06-03 100 {'date': datetime.date(2011, 6, 3), 'dealer_net': -22416830.0, 'trust_net': 330405581.0, 'foreign_net': 2358350823.0, 'total_net': 2666339574.0, 'margin_units': 15203232.0, 'short_units': 397306.0, 'margin_amt': 292665092.0}
+2011-08-15 150 {'date': datetime.date(2011, 8, 15), 'dealer_net': 876538936.0, 'trust_net': 806123871.0, 'foreign_net': 1347251291.0, 'total_net': 3029914098.0, 'margin_units': 13705248.0, 'short_units': 411419.0, 'margin_amt': 247978969.0}
+2011-10-26 200 {'date': datetime.date(2011, 10, 26), 'dealer_net': 1013404232.0, 'trust_net': 312579811.0, 'foreign_net': 469955311.0, 'total_net': 1795939354.0, 'margin_units': 13286378.0, 'short_units': 680075.0, 'margin_amt': 230531312.0}
+完成 2011 247

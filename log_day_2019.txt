@@ -1,0 +1,5 @@
+2019-03-25 50 {'date': datetime.date(2019, 3, 25), 'dealer_net': -1687637881.0, 'trust_net': -497201284.0, 'foreign_dealer_net': 5326430.0, 'total_net': -7367809785.0, 'margin_units': 7269981.0, 'short_units': 600196.0, 'margin_amt': 127728328.0}
+2019-06-06 100 {'date': datetime.date(2019, 6, 6), 'dealer_net': -2183462766.0, 'trust_net': -404646572.0, 'foreign_dealer_net': -244210.0, 'total_net': -4893202103.0, 'margin_units': 7126284.0, 'short_units': 382162.0, 'margin_amt': 124629559.0}
+2019-08-19 150 {'date': datetime.date(2019, 8, 19), 'dealer_net': 346409362.0, 'trust_net': 693234510.0, 'foreign_dealer_net': 294340.0, 'total_net': -2663294754.0, 'margin_units': 7122797.0, 'short_units': 446594.0, 'margin_amt': 129607698.0}
+2019-11-01 200 {'date': datetime.date(2019, 11, 1), 'dealer_net': 1423024834.0, 'trust_net': -339191000.0, 'foreign_dealer_net': -1416480.0, 'total_net': 9365033667.0, 'margin_units': 7558475.0, 'short_units': 823179.0, 'margin_amt': 141078964.0}
+完成 2019 242

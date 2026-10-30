@@ -1,0 +1,5 @@
+2006-03-21 50 {'date': datetime.date(2006, 3, 21), 'dealer_net': -1331032996.0, 'trust_net': -1731329868.0, 'foreign_net': -635673707.0, 'total_net': -3698036571.0, 'margin_units': 16157710.0, 'short_units': 518376.0, 'margin_amt': 243093052.0}
+2006-06-02 100 {'date': datetime.date(2006, 6, 2), 'dealer_net': -512292860.0, 'trust_net': 427195225.0, 'foreign_net': 4939185816.0, 'total_net': 4854088181.0, 'margin_units': 17506555.0, 'short_units': 801364.0, 'margin_amt': 278382771.0}
+2006-08-11 150 {'date': datetime.date(2006, 8, 11), 'dealer_net': -186385339.0, 'trust_net': 132935502.0, 'foreign_net': 6425071135.0, 'total_net': 6371621298.0, 'margin_units': 15350866.0, 'short_units': 566451.0, 'margin_amt': 230939249.0}
+2006-10-25 200 {'date': datetime.date(2006, 10, 25), 'dealer_net': -275464656.0, 'trust_net': -613606345.0, 'foreign_net': 3557123454.0, 'total_net': 2668052453.0, 'margin_units': 14973548.0, 'short_units': 737000.0, 'margin_amt': 236315187.0}
+完成 2006 247

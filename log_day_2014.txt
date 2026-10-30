@@ -1,0 +1,5 @@
+2014-03-21 50 {'date': datetime.date(2014, 3, 21), 'dealer_net': -992271680.0, 'trust_net': -517472299.0, 'foreign_net': 1343563821.0, 'total_net': -166180158.0, 'margin_units': 12048148.0, 'short_units': 418126.0, 'margin_amt': 205052796.0}
+2014-06-04 100 {'date': datetime.date(2014, 6, 4), 'dealer_net': 603353201.0, 'trust_net': -165587277.0, 'foreign_net': -1551524464.0, 'total_net': -1113758540.0, 'margin_units': 11978142.0, 'short_units': 379868.0, 'margin_amt': 207814964.0}
+2014-08-14 150 {'date': datetime.date(2014, 8, 14), 'dealer_net': -2274355473.0, 'trust_net': 580911781.0, 'foreign_net': -547469019.0, 'total_net': -2240912711.0, 'margin_units': 11962446.0, 'short_units': 399465.0, 'margin_amt': 211887641.0}
+2014-10-27 200 {'date': datetime.date(2014, 10, 27), 'dealer_net': -1100962804.0, 'trust_net': -254697292.0, 'foreign_net': 6087842273.0, 'total_net': 4732182177.0, 'margin_units': 11409692.0, 'short_units': 506935.0, 'margin_amt': 201025332.0}
+完成 2014 247

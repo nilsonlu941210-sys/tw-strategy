@@ -1,0 +1,5 @@
+2009-03-24 50 {'date': datetime.date(2009, 3, 24), 'dealer_net': -223054070.0, 'trust_net': 1419819087.0, 'foreign_net': 4035203022.0, 'total_net': 5231968039.0, 'margin_units': 12972654.0, 'short_units': 711694.0, 'margin_amt': 138495423.0}
+2009-06-05 100 {'date': datetime.date(2009, 6, 5), 'dealer_net': -228289612.0, 'trust_net': -1267360431.0, 'foreign_net': -2776779102.0, 'total_net': -4272429145.0, 'margin_units': 15345389.0, 'short_units': 785190.0, 'margin_amt': 212494508.0}
+2009-08-17 150 {'date': datetime.date(2009, 8, 17), 'dealer_net': -1031465471.0, 'trust_net': -790559322.0, 'foreign_net': -6334539771.0, 'total_net': -8156564564.0, 'margin_units': 14648231.0, 'short_units': 785781.0, 'margin_amt': 209809668.0}
+2009-10-26 200 {'date': datetime.date(2009, 10, 26), 'dealer_net': 62195963.0, 'trust_net': -300085644.0, 'foreign_net': 7128214535.0, 'total_net': 6890324854.0, 'margin_units': 14991804.0, 'short_units': 944300.0, 'margin_amt': 235437257.0}
+完成 2009 248

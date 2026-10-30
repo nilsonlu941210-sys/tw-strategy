@@ -1,0 +1,5 @@
+2025-03-24 50 {'date': datetime.date(2025, 3, 24), 'dealer_net': -3489044458.0, 'trust_net': 3056508896.0, 'foreign_dealer_net': 0.0, 'total_net': -11904922810.0, 'margin_units': 8211568.0, 'short_units': 170202.0, 'margin_amt': 323759132.0}
+2025-06-06 100 {'date': datetime.date(2025, 6, 6), 'dealer_net': -2455231216.0, 'trust_net': 3727698120.0, 'foreign_dealer_net': 0.0, 'total_net': -12401009115.0, 'margin_units': 6718618.0, 'short_units': 253471.0, 'margin_amt': 222353111.0}
+2025-08-15 150 {'date': datetime.date(2025, 8, 15), 'dealer_net': 2575066671.0, 'trust_net': -3356859132.0, 'foreign_dealer_net': 0.0, 'total_net': 4592053654.0, 'margin_units': 7075184.0, 'short_units': 273209.0, 'margin_amt': 248323607.0}
+2025-10-30 200 {'date': datetime.date(2025, 10, 30), 'dealer_net': 473652176.0, 'trust_net': -5433478960.0, 'foreign_dealer_net': 0.0, 'total_net': -3304304187.0, 'margin_units': 7444662.0, 'short_units': 334100.0, 'margin_amt': 298392447.0}
+完成 2025 243

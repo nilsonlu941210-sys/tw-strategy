@@ -1,0 +1,5 @@
+2022-03-23 50 {'date': datetime.date(2022, 3, 23), 'dealer_net': 3563496085.0, 'trust_net': 237406677.0, 'foreign_dealer_net': -3398620.0, 'total_net': 15070898872.0, 'margin_units': 8742025.0, 'short_units': 290858.0, 'margin_amt': 264802038.0}
+2022-06-07 100 {'date': datetime.date(2022, 6, 7), 'dealer_net': 2048035613.0, 'trust_net': 1656445518.0, 'foreign_dealer_net': 5975820.0, 'total_net': -12217131429.0, 'margin_units': 8235198.0, 'short_units': 497826.0, 'margin_amt': 243261143.0}
+2022-08-16 150 {'date': datetime.date(2022, 8, 16), 'dealer_net': -1792653626.0, 'trust_net': 4112241985.0, 'foreign_dealer_net': 5782200.0, 'total_net': -3317480533.0, 'margin_units': 7262902.0, 'short_units': 616257.0, 'margin_amt': 190229176.0}
+2022-10-27 200 {'date': datetime.date(2022, 10, 27), 'dealer_net': 239182411.0, 'trust_net': 716019666.0, 'foreign_dealer_net': -1042520.0, 'total_net': 11387116818.0, 'margin_units': 6659774.0, 'short_units': 619249.0, 'margin_amt': 166357481.0}
+完成 2022 246
