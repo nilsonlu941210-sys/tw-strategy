@@ -32,6 +32,7 @@ button{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}button.x{padding:6px 0;background:transparent;color:var(--mute);border:1px solid var(--line)}
 .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .note{color:var(--mute);font-size:13px;margin:6px 0 0}
+.danger{background:var(--buy-bg);color:var(--buy);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700;display:inline-block;margin-top:4px}
 .alert{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
 footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 </style>
@@ -195,7 +196,13 @@ function render() {
   }
   $('#core').innerHTML = coreHtml;
 
-  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
+  const stopInfo = h => {
+    if (!P[h.c] || !h.h250) return '';
+    const stop = P[h.c] / h.h250 * S.params.hold_h250, room = P[h.c] / stop - 1;
+    const txt = `停損價 約 ${fmt(stop, 2)}（收盤跌破就賣，還有 ${(room * 100).toFixed(1)}%）`;
+    return room <= 0.05 ? `<br><span class="danger">⚠ 接近停損：${txt}</span>` : `<br>${txt}`;
+  };
+  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   $('#hist').innerHTML = S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`).join('');
 }
