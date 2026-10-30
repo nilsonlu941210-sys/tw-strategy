@@ -1,0 +1,46 @@
+name: 研究-下載風險模組資料
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/risk_download.py']
+permissions:
+  contents: write
+jobs:
+  part:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        job: ['mkt', 'us', 'fut', 'day 2005', 'day 2006', 'day 2007', 'day 2008', 'day 2009', 'day 2010', 'day 2011', 'day 2012', 'day 2013', 'day 2014', 'day 2015', 'day 2016', 'day 2017', 'day 2018', 'day 2019', 'day 2020', 'day 2021', 'day 2022', 'day 2023', 'day 2024', 'day 2025', 'day 2026']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - id: n
+        run: echo "tag=$(echo '${{ matrix.job }}' | tr ' ' '_')" >> $GITHUB_OUTPUT
+      - run: python research/risk_download.py ${{ matrix.job }} 2>&1 | tee log_${{ steps.n.outputs.tag }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: risk-${{ steps.n.outputs.tag }}
+          path: |
+            risk_*.csv.gz
+            log_*.txt
+  merge:
+    needs: part
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - name: 存到 risk-data 分支
+        run: |
+          git clone -q --depth 1 -b risk-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" out || (mkdir out && cd out && git init -q && git checkout -q -b risk-data)
+          cp parts/* out/ && cd out && ls -la
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm "風險模組資料 $(date -u +%F)"
+          git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" risk-data
