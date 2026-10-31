@@ -198,8 +198,8 @@ function render() {
 
   const stopInfo = h => {
     if (!P[h.c] || !h.h250) return '';
-    const stop = P[h.c] / h.h250 * S.params.hold_h250, room = P[h.c] / stop - 1;
-    const txt = `停損價 約 ${fmt(stop, 2)}（收盤跌破就賣，還有 ${(room * 100).toFixed(1)}%）`;
+    const stop = P[h.c] / h.h250 * S.params.hold_h250, room = 1 - stop / P[h.c];
+    const txt = `停損價 約 ${fmt(stop, 2)}（收盤跌破就賣，再跌 ${(room * 100).toFixed(1)}% 就到）`;
     return room <= 0.05 ? `<br><span class="danger">⚠ 接近停損：${txt}</span>` : `<br>${txt}`;
   };
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
