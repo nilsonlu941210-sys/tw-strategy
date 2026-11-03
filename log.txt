@@ -2,3 +2,12 @@
 100 2333 筆數 113400 空 32 失敗 0
 200 3029 筆數 214858 空 60 失敗 0
 300 4163 筆數 229442 空 126 失敗 0
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4172
+400 5355 筆數 263156 空 201 失敗 0
