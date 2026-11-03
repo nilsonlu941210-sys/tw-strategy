@@ -1,11 +1,13 @@
-import requests, time, json
-U = 'https://api.finmindtrade.com/api/v4/data'
-for i in range(3):
-    for p in (dict(dataset='TaiwanStockInfo'), dict(dataset='TaiwanStockPrice', data_id='9932', start_date='1998-01-01', end_date='2005-12-31'), dict(dataset='TaiwanStockPrice', data_id='2330', start_date='1998-01-01', end_date='2005-12-31')):
-        r = requests.get(U, params=p, timeout=90)
-        try: j = r.json()
-        except Exception: j = {'raw': r.text[:200]}
-        d = j.get('data') or []
-        print(i, p.get('data_id', p['dataset']), r.status_code, j.get('status'), j.get('msg'), len(d), d[:1], d[-1:], {k: v for k, v in r.headers.items() if 'limit' in k.lower() or 'retry' in k.lower()}, flush=True)
-        time.sleep(3)
-r = requests.get('https://api.web.finmindtrade.com/v2/user_info', timeout=30); print('user_info', r.status_code, r.text[:300])
+import requests, time, pandas as pd
+H = {'User-Agent': 'Mozilla/5.0'}; rows = []
+for y in range(1998, 2006):
+    for m in range(1, 13):
+        for k in range(4):
+            try: j = requests.get(f'https://www.twse.com.tw/rwd/zh/TAIEX/MI_5MINS_HIST?date={y}{m:02d}01&response=json', headers=H, timeout=60).json(); break
+            except Exception as e: print(e); time.sleep(10)
+        for r in j.get('data', []):
+            a, b, c = r[0].strip().split('/'); f = lambda x: float(x.replace(',', ''))
+            rows.append(dict(date=f'{int(a)+1911}-{b}-{c}', open=f(r[1]), high=f(r[2]), low=f(r[3]), close=f(r[4])))
+        time.sleep(2.5)
+    print(y, len(rows), flush=True)
+pd.DataFrame(rows).to_json('old_taiex.json', orient='records')
