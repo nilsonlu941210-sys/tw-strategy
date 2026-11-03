@@ -1,0 +1,46 @@
+name: 研究-下載 1998–2005 資料（v48）
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/old_download.py']
+permissions:
+  contents: write
+jobs:
+  part:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        job: ['idx', '0/8', '1/8', '2/8', '3/8', '4/8', '5/8', '6/8', '7/8']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - id: n
+        run: echo "tag=$(echo '${{ matrix.job }}' | tr '/ ' '__')" >> $GITHUB_OUTPUT
+      - run: python research/old_download.py ${{ matrix.job }} 2>&1 | tee log_${{ steps.n.outputs.tag }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: old-${{ steps.n.outputs.tag }}
+          path: |
+            old_*
+            log_*.txt
+  merge:
+    needs: part
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: parts, merge-multiple: true}
+      - name: 存到 old-data 分支
+        run: |
+          mkdir out && cp parts/* out/ && cd out && ls -la
+          git init -q && git checkout -q -b old-data
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add -A && git commit -qm "1998–2005 資料 $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" old-data
