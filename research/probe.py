@@ -1,4 +1,4 @@
-import requests, time, pandas as pd
+import requests, time, json
 H = {'User-Agent': 'Mozilla/5.0'}; rows = []
 for y in range(1998, 2006):
     for m in range(1, 13):
@@ -10,4 +10,4 @@ for y in range(1998, 2006):
             rows.append(dict(date=f'{int(a)+1911}-{b}-{c}', open=f(r[1]), high=f(r[2]), low=f(r[3]), close=f(r[4])))
         time.sleep(2.5)
     print(y, len(rows), flush=True)
-pd.DataFrame(rows).to_json('old_taiex.json', orient='records')
+json.dump(rows, open("old_taiex.json", "w"))
