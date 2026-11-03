@@ -1,0 +1,23 @@
+總檔數 3016 本工作 377
+0 1109 2046
+50 2341 53269
+100 3036 104303
+150 4171 110866
+200 5362 123070
+250 6248 154225
+300 6912 156281
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+350 8150 159146
+完成 171627 失敗 ['6928', '6936']

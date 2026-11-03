@@ -1,0 +1,17 @@
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+msg Requests reach the upper limit. https://finmindtrade.com/
+Traceback (most recent call last):
+  File "/home/runner/work/tw-strategy/tw-strategy/research/old_download.py", line 29, in <module>
+    ids = sorted({d['stock_id'] for d in info + dl if len(d['stock_id']) == 4 and d['stock_id'].isdigit() and not d['stock_id'].startswith('0') and not d['stock_id'].startswith('91')})
+                                         ~~~~~^~~~
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'NoneType'
