@@ -13,3 +13,12 @@
 非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4542
 400 5353 筆數 244930 空 200 失敗 0
 500 6239 筆數 300935 空 237 失敗 0
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6708
+600 6902 筆數 306275 空 326 失敗 0
