@@ -27,3 +27,12 @@
 11-04 06:46 550 2376_2021-07-01 用量 (516712200, 524288000, 7575800)
 11-04 06:46 今日用量快滿，明天繼續
 11-04 06:46 本次完成 550 累計 550 / 2700 用量 (516712200, 524288000, 7575800)
+11-04 19:15 總工作 2700 已完成 221
+11-04 19:15 金鑰長度 44 43
+11-04 19:15 登入成功（金鑰順序正確）
+11-04 19:16 合約下載 fetch_contracts: exclusive access lost (concurrent API call started)
+11-04 19:16 合約檢查 2330 StockInfo(Contract(security_type='STK', region='TW', exchange='TSE', code='2330'), code='2330', name='台積電', category='24', currency=<Currency.TWD: 'TWD'>, unit=1000.0, day_trade=<DayTrade.Yes: 'Yes'>, reference=2295.0, limit_up=2520.0, limit_down=2070.0, margin_trading_balance=97, short_selling_balance=27, trading_suspended=False, margin_loan_ratio=0.6, margin_quota_lots=97, short_margin_ratio=0.9, short_quota_lots=27, margin_shortable=True, sbl_shortable=True, below_ref_shortable=True, disposition_level=0, attention_flag=False, etf_constituent=True, settlement_type='0', update_date=datetime.date(2026, 11, 4))
+11-04 19:16 用量（已用, 上限, 剩餘 bytes） (517306295, 524288000, 6981705)
+11-04 19:16 加權指數下載失敗 '001'
+11-04 19:16 找不到合約（可能已下市） 2888
+11-04 19:17 50 2344_2025-10-01 用量 (525596978, 524288000, -1308978)
