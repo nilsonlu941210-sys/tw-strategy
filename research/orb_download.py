@@ -26,20 +26,25 @@ log('總工作', len(tasks), '已完成', len(tasks) - len(todo))
 api = sj.Shioaji()
 A, B = os.environ['SJ_API_KEY'].strip(), os.environ['SJ_SECRET_KEY'].strip()
 log('金鑰長度', len(A), len(B))
-try: api.login(api_key=A, secret_key=B, contracts_timeout=300000); log('登入成功（金鑰順序正確）')
+try: api.login(api_key=A, secret_key=B); log('登入成功（金鑰順序正確）')
 except Exception as e:
     log('第一次登入失敗，改用相反順序再試：', str(e)[:200])
-    api = sj.Shioaji(); api.login(api_key=B, secret_key=A, contracts_timeout=300000); log('登入成功（兩個金鑰填反了，已自動對調）')
+    api = sj.Shioaji(); api.login(api_key=B, secret_key=A); log('登入成功（兩個金鑰填反了，已自動對調）')
 def usage():
     try: u = api.usage(); return u.bytes, u.limit_bytes, u.remaining_bytes
     except Exception as e: log('用量查詢失敗', e); return None
+time.sleep(10)
+try: api.fetch_contracts(contract_download=True)
+except Exception as e: log('合約下載', e)
+log('合約檢查 2330', api.Contracts.Stocks['2330'])
 log('用量（已用, 上限, 剩餘 bytes）', usage())
 
 T0 = time.time(); n = 0
 for s, q, a, z in todo:
     if time.time() - T0 > 5 * 3600: log('達到時間上限'); break
     key = f'{s}_{q}'
-    c = api.Contracts.Stocks.get(s)
+    try: c = api.Contracts.Stocks[s]
+    except Exception: c = None
     if c is None: prog['miss'].append(key); log('找不到合約（可能已下市）', s); continue
     for k in range(3):
         try: kb = api.kbars(c, start=a, end=z); break
