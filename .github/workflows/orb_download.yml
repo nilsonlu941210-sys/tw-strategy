@@ -1,0 +1,26 @@
+name: 研究-下載 1 分 K（ORB）
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 18 * * *'   # 台灣時間每天 02:17，接續下載
+permissions:
+  contents: write
+jobs:
+  dl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install shioaji pandas
+      - name: 取回之前的進度
+        env:
+          REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          if git clone -q -b orb-data "$REPO_URL" out; then echo 接續; else
+            mkdir out && cd out && git init -q && git checkout -q -b orb-data && git remote add origin "$REPO_URL"; fi
+          cd out && git config user.name gha && git config user.email gha@users.noreply.github.com      - run: python research/orb_download.py
+        env:
+          SJ_API_KEY: ${{ secrets.SJ_API_KEY }}
+          SJ_SECRET_KEY: ${{ secrets.SJ_SECRET_KEY }}
