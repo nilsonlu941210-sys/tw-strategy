@@ -16,7 +16,8 @@ qs = sorted(U['quarters']); tasks = []
 for j, q in enumerate(qs):
     a = (pd.Timestamp(q) - pd.DateOffset(months=1)).date()
     z = (pd.Timestamp(qs[j + 1]) - pd.Timedelta(days=1)).date() if j + 1 < len(qs) else dt.date.today()
-    tasks += [(s, q, str(a), str(z)) for s in U['quarters'][q]]
+    tasks += [(r, s, q, str(a), str(z)) for r, s in enumerate(U['quarters'][q])]
+tasks = [t[1:] for t in sorted(tasks)]   # 先抓每季成交金額前段的股票，幾天內就有完整 2020–2026 可先回測
 prog_f = f'{OUT}/prog.json'
 prog = json.load(open(prog_f)) if os.path.exists(prog_f) else dict(done=[], miss=[], empty=[])
 done = set(prog['done']) | set(prog['miss']) | set(prog['empty'])
