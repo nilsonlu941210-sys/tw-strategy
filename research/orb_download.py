@@ -40,6 +40,15 @@ except Exception as e: log('合約下載', e)
 log('合約檢查 2330', api.Contracts.Stocks['2330'])
 log('用量（已用, 上限, 剩餘 bytes）', usage())
 
+# 加權指數 1 分 K（做空研究的大盤條件用），只抓一次
+if not os.path.exists(f'{K}/TSE001_index.csv.gz'):
+    try:
+        ix = api.Contracts.Indexs.TSE['001']; parts = []
+        for y in range(2020, dt.date.today().year + 1):
+            kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
+            parts.append(pd.DataFrame({**kb})); time.sleep(1)
+        d = pd.concat(parts); d['ts'] = pd.to_datetime(d.ts); d.to_csv(f'{K}/TSE001_index.csv.gz', index=False); log('加權指數 1 分 K', len(d), d.ts.min(), d.ts.max())
+    except Exception as e: log('加權指數下載失敗', e)
 T0 = time.time(); n = 0
 for s, q, a, z in todo:
     if time.time() - T0 > 5 * 3600: log('達到時間上限'); break
