@@ -24,7 +24,12 @@ todo = [t for t in tasks if f'{t[0]}_{t[1]}' not in done]
 log('總工作', len(tasks), '已完成', len(tasks) - len(todo))
 
 api = sj.Shioaji()
-api.login(api_key=os.environ['SJ_API_KEY'], secret_key=os.environ['SJ_SECRET_KEY'], contracts_timeout=300000)
+A, B = os.environ['SJ_API_KEY'].strip(), os.environ['SJ_SECRET_KEY'].strip()
+log('金鑰長度', len(A), len(B))
+try: api.login(api_key=A, secret_key=B, contracts_timeout=300000); log('登入成功（金鑰順序正確）')
+except Exception as e:
+    log('第一次登入失敗，改用相反順序再試：', str(e)[:200])
+    api = sj.Shioaji(); api.login(api_key=B, secret_key=A, contracts_timeout=300000); log('登入成功（兩個金鑰填反了，已自動對調）')
 def usage():
     try: u = api.usage(); return u.bytes, u.limit_bytes, u.remaining_bytes
     except Exception as e: log('用量查詢失敗', e); return None
