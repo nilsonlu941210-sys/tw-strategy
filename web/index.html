@@ -104,12 +104,12 @@ function renderEditor() {
   $('#nobuy').value = NOBUY.join(', ');
   $('#fixed').value = FIXED.join(', ');
   $('#hlist').innerHTML = H.map((h, i) => `<div class="hrow">
-    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號" inputmode="numeric">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330、00719B）" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
     <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
 }
 function readEditor() {
-  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; H[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim() });
+  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; H[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
   H = H.filter(h => h.c);
   CASH = +$('#cash').value || 0;
   NOBUY = $('#nobuy').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('nobuy', NOBUY);
