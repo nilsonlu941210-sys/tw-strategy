@@ -2,7 +2,8 @@ name: 研究-下載 1 分 K（ORB）
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 18 * * *'   # 台灣時間每天 02:17，接續下載
+    - cron: '17 */4 * * *'   # 每 4 小時檢查一次；永豐額度重置後就接著抓
+concurrency: {group: orb-dl, cancel-in-progress: false}
 permissions:
   contents: write
 jobs:

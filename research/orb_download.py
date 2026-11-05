@@ -38,12 +38,18 @@ time.sleep(10)
 try: api.fetch_contracts(contract_download=True)
 except Exception as e: log('合約下載', e)
 log('合約檢查 2330', api.Contracts.Stocks['2330'])
-log('用量（已用, 上限, 剩餘 bytes）', usage())
+u0 = usage(); log('用量（已用, 上限, 剩餘 bytes）', u0)
+if u0 and u0[1] and u0[2] < 0.05 * u0[1]: log('今日用量尚未重置，這次先不抓'); api.logout(); sys.exit(0)
 
 # 加權指數 1 分 K（做空研究的大盤條件用），只抓一次
 if not os.path.exists(f'{K}/TSE001_index.csv.gz'):
     try:
-        ix = api.Contracts.Indexs.TSE['001']; parts = []
+        ix = None
+        for get in (lambda: api.Contracts.Indexs.TSE['TSE001'], lambda: api.Contracts.Indexs.TSE.TSE001, lambda: api.Contracts.Indexs['TSE']['001']):
+            try: ix = get(); break
+            except Exception: pass
+        if ix is None: log('找不到加權指數合約，可用代碼前幾個：', [c.code for c in list(api.Contracts.Indexs.TSE)[:10]])
+        parts = []
         for y in range(2020, dt.date.today().year + 1):
             kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
             parts.append(pd.DataFrame({**kb})); time.sleep(1)
