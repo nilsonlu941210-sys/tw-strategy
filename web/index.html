@@ -193,14 +193,14 @@ function render() {
   $('#autonote').innerHTML = `系統每天自動排除 ${Object.keys(AUTO).length} 檔（公開收購、全額交割、暫停/停止交易、即將下市），不用手動輸入。` + (autoHeld.length ? `<br><b>你持有的 ${autoHeld.map(c => (S.names[c] || '') + ' ' + c + '（' + AUTO[c] + '）').join('、')} 在名單上，要不要賣請自己判斷。</b>` : '');
   $('#coreTitle').textContent = `${core} ${S.core.name}`;
   const cp = P[core];
-  let coreHtml = row(S.core.name, core, `目標 ${Math.round(S.params.core_w * 100)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
+  let coreHtml = row(S.core.name, core, `目標 ${(S.params.core_w * 100).toFixed(1)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
   if (S.core.rebalance_today && total && cp) {
     const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
     coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
   } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
   if (total && cp) {
     const w = coreVal / total, gap = (w - S.params.core_w) * total;
-    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? '這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${Math.round(S.params.core_w * 100)}%。' : ''}</div>`;
+    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? `這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${(S.params.core_w * 100).toFixed(1)}%。` : ''}</div>`;
   }
   $('#core').innerHTML = coreHtml;
   if (!DEFS.length) { $('#defcard').style.display = 'none' } else {
