@@ -46,8 +46,15 @@ if not os.path.exists(f'{K}/TSE001_index.csv.gz'):
     try:
         ix = None
         for get in (lambda: api.Contracts.Indexs.TSE['TSE001'], lambda: api.Contracts.Indexs.TSE.TSE001, lambda: api.Contracts.Indexs['TSE']['001']):
-            try: ix = get(); break
+            try:
+                ix = get()
+                if ix is not None and hasattr(ix, 'code'): break
+                ix = None
             except Exception: pass
+        if ix is None:
+            try: ix = next((c for c in api.Contracts.Indexs.TSE if getattr(c, 'code', '') in ('001', 'TSE001') or '加權' in getattr(c, 'name', '')), None)
+            except Exception as e: log('列舉指數失敗', e)
+        log('加權指數合約', ix)
         if ix is None: log('找不到加權指數合約，可用代碼前幾個：', [c.code for c in list(api.Contracts.Indexs.TSE)[:10]])
         parts = []
         for y in range(2020, dt.date.today().year + 1):
