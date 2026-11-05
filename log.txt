@@ -61,3 +61,16 @@
 11-05 05:24 500 2367_2022-10-01 用量 (500010138, 524288000, 24277862)
 11-05 05:24 今日用量快滿，明天繼續
 11-05 05:24 本次完成 500 累計 1059 / 2700 用量 (500872846, 524288000, 23415154)
+11-05 08:39 總工作 2700 已完成 775
+11-05 08:39 金鑰長度 44 43
+11-05 08:39 登入成功（金鑰順序正確）
+11-05 08:39 合約下載 fetch_contracts: exclusive access lost (concurrent API call started)
+11-05 08:39 合約檢查 2330 StockInfo(Contract(security_type='STK', region='TW', exchange='TSE', code='2330'), code='2330', name='台積電', category='24', currency=<Currency.TWD: 'TWD'>, unit=1000.0, day_trade=<DayTrade.Yes: 'Yes'>, reference=2260.0, limit_up=2485.0, limit_down=2035.0, margin_trading_balance=73, short_selling_balance=30, trading_suspended=False, margin_loan_ratio=0.6, margin_quota_lots=73, short_margin_ratio=0.9, short_quota_lots=30, margin_shortable=True, sbl_shortable=True, below_ref_shortable=True, disposition_level=0, attention_flag=False, etf_constituent=True, settlement_type='0', update_date=datetime.date(2026, 11, 5))
+11-05 08:39 加權指數合約 IndexInfo(Contract(security_type='IND', region='TW', exchange='TSE', code='IR0001'), code='IR0001', name='發行量加權股價報酬指數', reference=99315.03, open_time='09:00', close_time='13:30', update_date=datetime.date(2026, 11, 5))
+11-05 08:39 加權指數 2020 0
+11-05 08:39 加權指數 2021 0
+11-05 08:40 加權指數 2022 0
+11-05 08:40 加權指數 2023 0
+11-05 08:40 加權指數 2024 0
+11-05 08:40 加權指數 2025 3953
+11-05 08:40 加權指數 2026 24472
