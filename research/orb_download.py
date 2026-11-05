@@ -68,6 +68,22 @@ if ix is not None:
             d['ts'] = pd.to_datetime(d.ts); d.to_csv(fn, index=False); log('加權指數', y, len(d)); time.sleep(1)
         except Exception as e: log('加權指數下載失敗', y, e); break
     json.dump(prog, open(prog_f, 'w')); push('加權指數 1 分 K')
+# 臺指期近月連續（TXFR1）1 分 K（含夜盤，研究時再切日盤），逐年存檔可接續
+try:
+    fx = api.Contracts.Futures.TXF.TXFR1; log('臺指期連續合約', fx)
+    for y in range(2020, dt.date.today().year + 1):
+        fn = f'{K}/TXFR1_{y}.csv.gz'
+        if os.path.exists(fn) and y < dt.date.today().year:
+            try:
+                last_ts = pd.read_csv(fn, usecols=['ts']).ts.max()
+                if isinstance(last_ts, str) and last_ts[:10] >= f'{y}-12-25': continue
+            except Exception: pass
+        kb = api.kbars(fx, start=f'{y}-01-01' if y > 2020 else '2020-03-22', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
+        d = pd.DataFrame({**kb})
+        if d.empty: log('臺指期', y, '0 筆（可能額度用完），下次再抓'); break
+        d['ts'] = pd.to_datetime(d.ts); d.to_csv(fn, index=False); log('臺指期', y, len(d), d.ts.min(), d.ts.max()); time.sleep(1)
+    json.dump(prog, open(prog_f, 'w')); push('臺指期 1 分 K')
+except Exception as e: log('臺指期下載失敗', e)
 u0 = usage(); log('用量（已用, 上限, 剩餘 bytes）', u0)
 if u0 and u0[1] and u0[2] < 0.05 * u0[1]: log('今日用量尚未重置，這次先不抓'); api.logout(); sys.exit(0)
 
