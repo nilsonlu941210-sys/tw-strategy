@@ -38,30 +38,30 @@ time.sleep(10)
 try: api.fetch_contracts(contract_download=True)
 except Exception as e: log('合約下載', e)
 log('合約檢查 2330', api.Contracts.Stocks['2330'])
+# 加權指數 1 分 K（逐年存檔，可接續；在額度檢查前先做，資料量小）
+ix = None
+for get in (lambda: api.Contracts.Indexs.TSE['TSE001'], lambda: api.Contracts.Indexs.TSE.TSE001, lambda: api.Contracts.Indexs['TSE']['001']):
+    try:
+        ix = get()
+        if ix is not None and hasattr(ix, 'code'): break
+        ix = None
+    except Exception: pass
+if ix is None:
+    try: ix = next((c for c in api.Contracts.Indexs.TSE if getattr(c, 'code', '') in ('001', 'TSE001') or '加權' in getattr(c, 'name', '')), None)
+    except Exception as e: log('列舉指數失敗', e)
+log('加權指數合約', ix)
+if ix is not None:
+    for y in range(2020, dt.date.today().year + 1):
+        fn = f'{K}/TSE001_{y}.csv.gz'
+        if os.path.exists(fn) and y < dt.date.today().year: continue
+        try:
+            kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
+            d = pd.DataFrame({**kb}); d['ts'] = pd.to_datetime(d.ts); d.to_csv(fn, index=False); log('加權指數', y, len(d)); time.sleep(1)
+        except Exception as e: log('加權指數下載失敗', y, e); break
+    json.dump(prog, open(prog_f, 'w')); push('加權指數 1 分 K')
 u0 = usage(); log('用量（已用, 上限, 剩餘 bytes）', u0)
 if u0 and u0[1] and u0[2] < 0.05 * u0[1]: log('今日用量尚未重置，這次先不抓'); api.logout(); sys.exit(0)
 
-# 加權指數 1 分 K（做空研究的大盤條件用），只抓一次
-if not os.path.exists(f'{K}/TSE001_index.csv.gz'):
-    try:
-        ix = None
-        for get in (lambda: api.Contracts.Indexs.TSE['TSE001'], lambda: api.Contracts.Indexs.TSE.TSE001, lambda: api.Contracts.Indexs['TSE']['001']):
-            try:
-                ix = get()
-                if ix is not None and hasattr(ix, 'code'): break
-                ix = None
-            except Exception: pass
-        if ix is None:
-            try: ix = next((c for c in api.Contracts.Indexs.TSE if getattr(c, 'code', '') in ('001', 'TSE001') or '加權' in getattr(c, 'name', '')), None)
-            except Exception as e: log('列舉指數失敗', e)
-        log('加權指數合約', ix)
-        if ix is None: log('找不到加權指數合約，可用代碼前幾個：', [c.code for c in list(api.Contracts.Indexs.TSE)[:10]])
-        parts = []
-        for y in range(2020, dt.date.today().year + 1):
-            kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
-            parts.append(pd.DataFrame({**kb})); time.sleep(1)
-        d = pd.concat(parts); d['ts'] = pd.to_datetime(d.ts); d.to_csv(f'{K}/TSE001_index.csv.gz', index=False); log('加權指數 1 分 K', len(d), d.ts.min(), d.ts.max())
-    except Exception as e: log('加權指數下載失敗', e)
 T0 = time.time(); n = 0
 for s, q, a, z in todo:
     if time.time() - T0 > 5 * 3600: log('達到時間上限'); break
