@@ -1,0 +1,19 @@
+name: 研究-下載防禦型資產資料
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/def_download.py']
+permissions:
+  contents: write
+jobs:
+  dl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install yfinance pandas requests
+      - run: python research/def_download.py
+        env:
+          REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
