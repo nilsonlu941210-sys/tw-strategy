@@ -1,7 +1,7 @@
 # ORB 研究：用永豐 Shioaji 下載個股 1 分 K（2020-03 起）
 # 股票範圍：每季成交金額前 100 名（orb_universe.json，時點正確），只抓該檔在名單內那一季（含前 1 個月暖身）
 # 進度存在 orb-data 分支，每天自動接續；用量快滿就停，隔天再跑
-import os, sys, json, time, subprocess, datetime as dt
+import os, sys, json, glob, time, subprocess, datetime as dt
 import pandas as pd, shioaji as sj
 
 OUT = 'out'; K = f'{OUT}/k'; os.makedirs(K, exist_ok=True)
@@ -40,19 +40,22 @@ except Exception as e: log('合約下載', e)
 log('合約檢查 2330', api.Contracts.Stocks['2330'])
 # 加權指數 1 分 K（逐年存檔，可接續；在額度檢查前先做，資料量小）
 ix = None
-for get in (lambda: api.Contracts.Indexs.TSE['TSE001'], lambda: api.Contracts.Indexs.TSE.TSE001, lambda: api.Contracts.Indexs['TSE']['001']):
+for get in (lambda: api.Contracts.Indexs.TSE['001'], lambda: api.Contracts.Indexs.TSE.TSE001):
     try:
         ix = get()
-        if ix is not None and hasattr(ix, 'code'): break
+        if ix is not None and getattr(ix, 'name', '') == '發行量加權股價指數': break
         ix = None
     except Exception: pass
 if ix is None:
-    try: ix = next((c for c in api.Contracts.Indexs.TSE if getattr(c, 'code', '') in ('001', 'TSE001') or '加權' in getattr(c, 'name', '')), None)
+    try:
+        allix = list(api.Contracts.Indexs.TSE); log('TSE 指數共', len(allix), [(c.code, c.name) for c in allix[:40]])
+        ix = next((c for c in allix if c.name == '發行量加權股價指數'), None) or next((c for c in allix if c.code in ('001', 'TSE001')), None)
     except Exception as e: log('列舉指數失敗', e)
 log('加權指數合約', ix)
+for bad in glob.glob(f'{K}/TSE001_*.csv.gz'): os.remove(bad)
 if ix is not None:
     for y in range(2020, dt.date.today().year + 1):
-        fn = f'{K}/TSE001_{y}.csv.gz'
+        fn = f'{K}/TAIEX_{y}.csv.gz'
         if os.path.exists(fn) and y < dt.date.today().year: continue
         try:
             kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
