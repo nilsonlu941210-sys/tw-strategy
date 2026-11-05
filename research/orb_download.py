@@ -56,10 +56,16 @@ for bad in glob.glob(f'{K}/TSE001_*.csv.gz'): os.remove(bad)
 if ix is not None:
     for y in range(2020, dt.date.today().year + 1):
         fn = f'{K}/TAIEX_{y}.csv.gz'
-        if os.path.exists(fn) and y < dt.date.today().year: continue
+        if os.path.exists(fn) and y < dt.date.today().year:
+            try:
+                last_ts = pd.read_csv(fn, usecols=['ts']).ts.max()
+                if isinstance(last_ts, str) and last_ts[:10] >= f'{y}-12-25': continue
+            except Exception: pass
         try:
             kb = api.kbars(ix, start=f'{y}-01-01' if y > 2020 else '2020-03-02', end=f'{y}-12-31' if y < dt.date.today().year else str(dt.date.today()))
-            d = pd.DataFrame({**kb}); d['ts'] = pd.to_datetime(d.ts); d.to_csv(fn, index=False); log('加權指數', y, len(d)); time.sleep(1)
+            d = pd.DataFrame({**kb})
+            if d.empty: log('加權指數', y, '0 筆（可能額度用完），下次再抓'); break
+            d['ts'] = pd.to_datetime(d.ts); d.to_csv(fn, index=False); log('加權指數', y, len(d)); time.sleep(1)
         except Exception as e: log('加權指數下載失敗', y, e); break
     json.dump(prog, open(prog_f, 'w')); push('加權指數 1 分 K')
 u0 = usage(); log('用量（已用, 上限, 剩餘 bytes）', u0)
