@@ -85,7 +85,7 @@ try:
     json.dump(prog, open(prog_f, 'w')); push('臺指期 1 分 K')
 except Exception as e: log('臺指期下載失敗', e)
 u0 = usage(); log('用量（已用, 上限, 剩餘 bytes）', u0)
-if u0 and u0[1] and u0[2] < 0.05 * u0[1]: log('今日用量尚未重置，這次先不抓'); api.logout(); sys.exit(0)
+if u0 and u0[1] and u0[2] < 0.15 * u0[1]: log('今日用量尚未重置，這次先不抓'); api.logout(); sys.exit(0)
 
 T0 = time.time(); n = 0
 for s, q, a, z in todo:
@@ -107,7 +107,7 @@ for s, q, a, z in todo:
     if n % 50 == 0:
         u = usage(); log(n, key, '用量', u)
         json.dump(prog, open(prog_f, 'w')); push(f'進度 {len(prog["done"])}/{len(tasks)}')
-        if u and u[2] is not None and u[1] and u[2] < 0.05 * u[1]: log('今日用量快滿，明天繼續'); break
+        if u and u[2] is not None and u[1] and u[2] < 0.15 * u[1]: log('今日用量快滿，明天繼續'); break
 prog['total'] = len(tasks); prog['final'] = len(prog['done']) + len(prog['miss']) + len(prog['empty']) >= len(tasks)
 json.dump(prog, open(prog_f, 'w')); log('本次完成', n, '累計', len(prog['done']), '/', len(tasks), '用量', usage())
 push(f'進度 {len(prog["done"])}/{len(tasks)}')
