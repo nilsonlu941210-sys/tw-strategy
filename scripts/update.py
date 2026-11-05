@@ -44,9 +44,10 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
         cl = st['close'].iloc[-1]; m = both.index.intersection(cl.dropna().index)
         diff = (both.loc[m, 'close'] - cl[m]).abs()
         print(f'  檢查：收盤價與已存資料相符 {int((diff < 1e-6).sum())}/{len(m)} 檔')
-        if CORE in both.index and (CORE not in st['close'].columns or pd.isna(st['close'][CORE].iloc[-1])):
-            st['close'].loc[st['close'].index[-1], CORE] = both.loc[CORE, 'close']; st['names'][CORE] = '國泰台灣科技龍頭'
-            print(f"  補上 {CORE} 價格 {both.loc[CORE, 'close']}")
+        for cc, nn in [(CORE, '國泰台灣科技龍頭')] + list(DEF_NAMES.items()):
+            if cc in both.index and (cc not in st['close'].columns or pd.isna(st['close'][cc].iloc[-1])):
+                st['close'].loc[st['close'].index[-1], cc] = both.loc[cc, 'close']; st['names'][cc] = nn
+                print(f"  補上 {cc} 價格 {both.loc[cc, 'close']}")
         for c in ('2330', '2454', '6214', '3081', '00881'):
             if c in both.index: print(f"    {c} 收盤 {both.loc[c, 'close']} 漲跌 {both.loc[c, 'chg']} 成交金額 {both.loc[c, 'money']:,.0f} 已存收盤 {cl.get(c)}")
     except Exception as e:
@@ -74,7 +75,7 @@ today_rec = dict(date=str(d.date()), buys=[dict(c=c, n=nm(c)) for c in buys.inde
 hist = [h for h in hist if h['date'] != today_rec['date']] + [today_rec]; st['history'] = hist[-30:]
 out = dict(
     date=str(d.date()), generated=now.strftime('%Y-%m-%d %H:%M'), pool_quarter=st['pool_quarter'], pool_size=len(st['pool']),
-    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K, swap_m=SWAP_M),
+    params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, defs=DEF, def_names=DEF_NAMES, free_w=FREE_W, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K, swap_m=SWAP_M),
     core=dict(code=CORE, name=nm(CORE) or '國泰台灣科技龍頭', price=f(px.get(CORE), 2), days_since=n_since % CORE_K, rebalance_today=(n_since % CORE_K == 0)),
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
     pool=pool_info,

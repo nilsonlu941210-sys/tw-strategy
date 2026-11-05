@@ -4,7 +4,10 @@ import numpy as np, pandas as pd, requests, warnings
 warnings.filterwarnings('ignore')
 
 # ---------------- 策略參數（已驗證，請勿修改） ----------------
-POOL_N, SAT_N, SAT_W, CORE, CORE_W, CORE_K = 500, 7, 0.10, '00881', 0.30, 20   # 2026-10-28 使用者改為 7 檔＋核心 30%
+POOL_N, SAT_N, SAT_W, CORE, CORE_W, CORE_K = 500, 7, 0.45 / 7, '00881', 0.225, 60   # 2026-11-05 使用者改為：00881 22.5%＋短債 13.5%＋黃金 9%＋衛星 7 檔共 45%＋自由資金 10%，每 60 交易日調回
+DEF = {'00719B': 0.135, '00635U': 0.09}   # 防守部位：美債 1–3 年、黃金
+DEF_NAMES = {'00719B': '元大美債1-3', '00635U': '期元大S&P黃金'}
+FREE_W = 0.10   # 自由資金（策略不使用）
 BRK_LB, HOLD_H250, HOLD_RNH = 60, 0.85, -0.20
 EXCLUDE = {'2330'}
 KEEP_ROWS = 320
@@ -107,7 +110,7 @@ def fetch_tpex(day):
 def append_day(st, day, df):
     adj, money, close = st['adj'], st['money'], st['close']
     df = df[df.close > 0].drop_duplicates('code').set_index('code')
-    df = df[[bool(re.fullmatch(r'[1-9]\d{3}', c)) or c == CORE for c in df.index]]
+    df = df[[bool(re.fullmatch(r'[1-9]\d{3}', c)) or c == CORE or c in DEF for c in df.index]]
     new_cols = list(df.index.difference(adj.columns))
     if new_cols:
         cols = list(adj.columns) + new_cols

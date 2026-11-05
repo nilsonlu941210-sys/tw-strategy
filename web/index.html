@@ -49,6 +49,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 <section class="card"><h2><span class="tag t-sell">賣出</span>明天要賣</h2><div id="sells"></div></section>
 <section class="card"><h2><span class="tag t-buy">買進</span>明天要買</h2><div id="buys"></div></section>
 <section class="card"><h2><span class="tag t-core">核心</span><span id="coreTitle">00881</span></h2><div id="core"></div></section>
+<section class="card" id="defcard"><h2><span class="tag t-core">防守</span>短債＋黃金</h2><div id="defs"></div></section>
 <section class="card"><h2>續抱</h2><div id="holds"></div></section>
 
 <section class="card">
@@ -80,7 +81,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 <section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
 
 <footer>
-  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔 10%；00881 佔 30%，每 20 個交易日調回。<br>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 00635U 9%，每 60 個交易日調回；另留 10% 自由資金。<br>
   訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
 </footer>
 </main>
@@ -127,13 +128,13 @@ function row(name, code, why, big, small) {
 
 function render() {
   if (!S) return;
-  const P = S.prices, core = S.params.core;
+  const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS = Object.keys(DEFW), FREE = S.params.free_w || 0;
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
-  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core) missing.push(c) }
+  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c)) missing.push(c) }
   const total = CASH + stockVal;
-  const sat = Object.keys(held).filter(c => c !== core && !FIXED.includes(c));
-  const fixedHeld = Object.keys(held).filter(c => c !== core && FIXED.includes(c));
+  const sat = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && !FIXED.includes(c));
+  const fixedHeld = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && FIXED.includes(c));
   const sells = [], holds = [];
   sat.forEach(c => {
     const p = S.pool[c];
@@ -175,7 +176,7 @@ function render() {
 
   $('#sells').innerHTML = sells.length ? sells.map(s => row(s.n, s.c, s.why, `全部 ${fmt(held[s.c])} 股`, P[s.c] ? `收盤 ${fmt(P[s.c], 2)}` : '')).join('') : '<div class="empty">沒有要賣的</div>';
   // 可用現金 = 現金 + 明天賣出的預估款（扣手續費與證交稅），依順序扣
-  let avail = CASH + sells.reduce((a, x) => a + (held[x.c] || 0) * (P[x.c] || 0) * (1 - 0.0034), 0);
+  let avail = Math.max(0, CASH - FREE * total) + sells.reduce((a, x) => a + (held[x.c] || 0) * (P[x.c] || 0) * (1 - 0.0034), 0);
   let short = false;
   $('#buys').innerHTML = (buys.length ? buys.map(b => {
     let sh = b.price ? Math.floor(amt / b.price) : 0, note = '';
@@ -202,6 +203,19 @@ function render() {
     if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? '這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${Math.round(S.params.core_w * 100)}%。' : ''}</div>`;
   }
   $('#core').innerHTML = coreHtml;
+  if (!DEFS.length) { $('#defcard').style.display = 'none' } else {
+    let dh = '';
+    DEFS.forEach(c => {
+      const pr = P[c], v = (held[c] || 0) * (pr || 0), w = total ? v / total : 0, tw = DEFW[c];
+      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pr ? `收盤 ${fmt(pr, 2)}` : '價格等下一次更新');
+      if (total && pr && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
+        const diff = tw * total - v, sh = Math.floor(Math.abs(diff) / pr);
+        if (sh > 0) dh += `<div class="alert">${S.core.rebalance_today ? '今天是調整日：' : '偏離目標超過 3%：'}${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
+      }
+    });
+    dh += `<p class="note">和 00881 一起每 ${S.params.core_k} 個交易日調回目標比例。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
+    $('#defs').innerHTML = dh;
+  }
 
   const stopInfo = h => {
     if (!P[h.c] || !h.h250) return '';
