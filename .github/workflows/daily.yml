@@ -44,6 +44,19 @@ jobs:
           set -o pipefail
           python scripts/update.py --state data/state.pkl --out site/signals.json 2>&1 | tee data/last_run.log
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 明日當沖觀察名單（永豐 1 分 K，失敗不影響其他）
+        continue-on-error: true
+        env:
+          SJ_API_KEY: ${{ secrets.SJ_API_KEY }}
+          SJ_SECRET_KEY: ${{ secrets.SJ_SECRET_KEY }}
+        run: |
+          pip install shioaji pandas numpy
+          python scripts/daytrade_watch.py --state data/state.pkl --signals site/signals.json 2>&1 | tee -a data/last_run.log
+
       - name: 存回狀態檔（data 分支只保留最新一版）
         run: |
           cd data
