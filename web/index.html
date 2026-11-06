@@ -81,7 +81,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 <section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
 
 <footer>
-  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 00635U 9%，每 60 個交易日調回；另留 10% 自由資金。<br>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 GLDM（複委託）9%，每 60 個交易日調回；另留 10% 自由資金。<br>
   訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
 </footer>
 </main>
@@ -207,7 +207,7 @@ function render() {
     let dh = '';
     DEFS.forEach(c => {
       const pr = P[c], v = (held[c] || 0) * (pr || 0), w = total ? v / total : 0, tw = DEFW[c];
-      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pr ? `收盤 ${fmt(pr, 2)}` : '價格等下一次更新');
+      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pr ? (/^\d/.test(c) ? `收盤 ${fmt(pr, 2)}` : `約 ${fmt(pr, 2)} 元／股（美元收盤×匯率）`) : '價格等下一次更新');
       if (total && pr && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
         const diff = tw * total - v, sh = Math.floor(Math.abs(diff) / pr);
         if (sh > 0) dh += `<div class="alert">${S.core.rebalance_today ? '今天是調整日：' : '偏離目標超過 3%：'}${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;

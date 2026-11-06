@@ -48,6 +48,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: 複委託標的價格（GLDM 等，失敗不影響其他）
+        continue-on-error: true
+        run: |
+          pip install yfinance pandas
+          python scripts/foreign_px.py --signals site/signals.json 2>&1 | tee -a data/last_run.log
+
       - name: 明日當沖觀察名單（永豐 1 分 K，失敗不影響其他）
         continue-on-error: true
         env:
