@@ -225,24 +225,31 @@ function render() {
   };
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
-  $('#hist').innerHTML = S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`).join('');
+  collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
 }
 
 renderEditor();
 
+
+function collapse(el, rowsHtml, n = 2) {
+  if (rowsHtml.length <= n) { el.innerHTML = rowsHtml.join(''); return }
+  const id = el.id, open = !!(window._open || {})[id];
+  el.innerHTML = rowsHtml.slice(0, n).join('') + `<div class="more" style="${open ? '' : 'display:none'}">${rowsHtml.slice(n).join('')}</div>`
+    + `<button class="btn ghost" style="width:100%;margin-top:8px" onclick="(window._open=window._open||{})['${id}']=!window._open['${id}'];this.previousElementSibling.style.display=window._open['${id}']?'':'none';this.textContent=window._open['${id}']?'收合':'展開全部（共 ${rowsHtml.length} 筆）'">${open ? '收合' : `展開全部（共 ${rowsHtml.length} 筆）`}</button>`;
+}
 function renderDT() {
   const D = S && S.dt;
   if (!D) { $('#dtcard').style.display = 'none'; return }
   $('#dtrule').textContent = `${D.date || ''} 收盤後整理｜${D.rule || ''}｜依近 10 日平均振幅排序（波動大的在前）`;
   if (!D.items || !D.items.length) { $('#dtlist').innerHTML = `<div class="empty">今天沒有資料${D.err ? '（' + D.err + '）' : ''}</div>`; return }
   const f2 = x => fmt(x, 2), tg = b => b === '偏空' ? 't-sell' : b === '偏多' ? 't-buy' : 't-core';
-  $('#dtlist').innerHTML = D.items.map(r => `<div class="row"><div class="l" style="flex:1">
+  collapse($('#dtlist'), D.items.map(r => `<div class="row"><div class="l" style="flex:1">
     <b>${r.n || r.c}</b><span class="code">${r.c}</span> <span class="tag ${tg(r.bias)}">${r.bias}</span>
     <div class="dtl"><span class="k">壓力</span><span>${r.res.length ? r.res.map(f2).join('、') : '—'}</span>
     <span class="k">支撐</span><span>${r.sup.length ? r.sup.map(f2).join('、') : '—'}</span>
     <span class="k">型態</span><span>${r.trend}｜收在當日${r.pos > 0.7 ? '高檔' : r.pos < 0.3 ? '低檔' : '中間'}｜5 日 ${pct(r.r5)}</span>
     <span class="k">當沖</span><span>${r.short_ok || '—'}｜每檔 ${r.tick} 元，賺 ${r.ticks} 檔才打平</span></div>
-  </div><div class="r"><div class="big">${f2(r.close)}</div><div class="small">${(r.chg >= 0 ? '+' : '') + (r.chg * 100).toFixed(1)}%</div><div class="small">振幅 ${(r.rng * 100).toFixed(1)}%</div></div></div>`).join('');
+  </div><div class="r"><div class="big">${f2(r.close)}</div><div class="small">${(r.chg >= 0 ? '+' : '') + (r.chg * 100).toFixed(1)}%</div><div class="small">振幅 ${(r.rng * 100).toFixed(1)}%</div></div></div>`));
 }
 fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; try { renderDT() } catch (e) { console.log(e) } render() })
   .catch(() => { $('#sub').textContent = '讀取資料失敗，請稍後重新整理' });
