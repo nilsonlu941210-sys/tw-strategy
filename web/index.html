@@ -112,7 +112,7 @@ function renderEditor() {
     <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('');
   OTH = H.filter(h => !isFix(h.c));
   $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
-    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330、QQQ）" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="decimal" step="any">
     <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
 }
@@ -140,7 +140,7 @@ function row(name, code, why, big, small) {
 function render() {
   if (!S) return;
   const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
-  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {QQQ: 'Invesco QQQ（複委託）'}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
+  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
   for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c) && !isFix(c)) missing.push(c) }
