@@ -1,0 +1,24 @@
+name: 研究-下載季報 EPS（v73）
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['research/eps_download.py']
+permissions:
+  contents: write
+jobs:
+  part:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ['0/4', '1/4', '2/4', '3/4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install requests pandas
+      - run: python research/eps_download.py ${{ matrix.job }}
+        env:
+          REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
