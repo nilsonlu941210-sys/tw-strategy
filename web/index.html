@@ -122,15 +122,20 @@ let PERF = store.get('perf', []), PENDFLOW = 0;
 const NOBUY = [], FIXED = [];   // 2026-11-07 使用者決定刪除手動不買名單與固定持有
 try { localStorage.removeItem('nobuy'); localStorage.removeItem('fixed') } catch (e) {}
 let S = null;
-const FIXC = [['00881', '核心 00881'], ['00719B', '短債 00719B'], ['GLDM', '黃金 GLDM'], ['00635U', '黃金 00635U']];
-const isFix = c => FIXC.some(f => f[0] === c);
+let CORESEL = store.get('coresel', '00881');
+const CORE_OPTS = {'00881': '國泰台灣科技龍頭', '0050': '元大台灣50'};
+const FIXC = [['__CORE__', '核心'], ['00719B', '短債 00719B'], ['GLDM', '黃金 GLDM'], ['00635U', '黃金 00635U']];
+const isFix = c => c in CORE_OPTS || FIXC.some(f => f[0] === c);
 let OTH = [];
 
 function renderEditor() {
   $('#cash').value = CASH || '';
   const sh = c => H.filter(h => h.c === c).reduce((a, h) => a + (+h.s || 0), 0);
-  $('#fixlist').innerHTML = FIXC.map(([c, lab]) => `<div class="hrow"><div style="flex:1;align-self:center"><b>${lab}</b></div>
-    <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('');
+  $('#fixlist').innerHTML = FIXC.map(([c0, lab]) => { const c = c0 === '__CORE__' ? CORESEL : c0;
+    const label = c0 === '__CORE__' ? `<b>核心</b> <select id="coresel" style="font:inherit;font-weight:700;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 4px">${Object.keys(CORE_OPTS).map(k => `<option value="${k}"${k === CORESEL ? ' selected' : ''}>${k}</option>`).join('')}</select>` : `<b>${lab}</b>`;
+    return `<div class="hrow"><div style="flex:1;align-self:center">${label}</div>
+    <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>` }).join('');
+  $('#coresel').onchange = e => { const v = e.target.value, inp = $('#fixlist input[data-fix]'); inp.dataset.fix = v; };
   OTH = H.filter(h => !isFix(h.c));
   $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
     <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
@@ -145,6 +150,7 @@ function readEditor() {
   OTH = OTH.filter(h => !isFix(h.c));
   H = fx.concat(OTH.filter(h => h.c || h.s || h.nw)).map(h => (h.c || h.s ? (delete h.nw, h) : h));
   CASH = +$('#cash').value || 0;
+  if ($('#coresel')) { CORESEL = $('#coresel').value; store.set('coresel', CORESEL) }
   PENDFLOW += +$('#flow').value || 0;
   store.set('holdings', H); store.set('cash', CASH);
 }
@@ -167,7 +173,7 @@ showTab(store.get('tab', 'home'));
 
 function render() {
   if (!S) return;
-  const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
+  const P = S.prices, core = CORESEL, coreName = CORE_OPTS[core] || S.core.name, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
   const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
@@ -209,12 +215,12 @@ function render() {
   $('#summary').innerHTML = `<div class="kpi">
     <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
     <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
-    <div><div class="k">00881 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
+    <div><div class="k">${core} 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
     ${total ? (() => { const want = FREE * total, free = Math.min(CASH, want), stratCash = Math.max(0, CASH - want);
       return `<div class="row" style="margin-top:10px"><div class="l"><b>自由使用資金</b><div class="why">總資產的 ${Math.round(FREE * 100)}%，策略不會動用，可以自己操作${CASH < want ? `<br><b>現金不夠：目前現金只有 ${fmt(CASH)} 元，比 ${Math.round(FREE * 100)}% 少 ${fmt(want - CASH)} 元，策略這次不會再用現金買股</b>` : ''}</div></div><div class="r"><div class="big">${fmt(free)} 元</div><div class="small">策略可用現金 ${fmt(stratCash)} 元</div></div></div>`; })() : ''}
     ${(Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5 ? `<div class="alert"><b>這份資料是 ${S.date} 的舊資料（可能是網路不穩時讀到手機裡的備份），請先不要照著買賣，連上網路後重新整理。</b></div>` : ''}
     ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
-    ${held[core] && P[core] == null ? `<div class="alert">00881 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
+    ${held[core] && P[core] == null ? `<div class="alert">${core} 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
     ${total === 0 ? `<div class="alert">先在下方輸入現金和持股，才會算出買賣股數。</div>` : ''}`;
 
   $('#sells').innerHTML = sells.length ? sells.map(s => row(s.n, s.c, s.why, `全部 ${fmt(held[s.c])} 股`, P[s.c] ? `收盤 ${fmt(P[s.c], 2)}` : '')).join('') : '<div class="empty">沒有要賣的</div>';
@@ -234,16 +240,16 @@ function render() {
 
   const autoHeld = Object.keys(AUTO).filter(c => held[c]);
   $('#autonote').innerHTML = `系統每天自動排除 ${Object.keys(AUTO).length} 檔（公開收購、全額交割、暫停/停止交易、即將下市），不用手動輸入。` + (autoHeld.length ? `<br><b>你持有的 ${autoHeld.map(c => (S.names[c] || '') + ' ' + c + '（' + AUTO[c] + '）').join('、')} 在名單上，要不要賣請自己判斷。</b>` : '');
-  $('#coreTitle').textContent = `${core} ${S.core.name}`;
+  $('#coreTitle').textContent = `${core} ${coreName}`;
   const cp = P[core];
-  let coreHtml = row(S.core.name, core, `目標 ${(S.params.core_w * 100).toFixed(1)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
+  let coreHtml = row(coreName, core, `目標 ${(S.params.core_w * 100).toFixed(1)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
   if (S.core.rebalance_today && total && cp) {
     const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
     coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
   } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
   if (total && cp) {
     const w = coreVal / total, gap = (w - S.params.core_w) * total;
-    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? `這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${(S.params.core_w * 100).toFixed(1)}%。` : ''}</div>`;
+    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">${core} 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? `這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${(S.params.core_w * 100).toFixed(1)}%。` : ''}</div>`;
   }
   $('#core').innerHTML = coreHtml;
   if (!DEFS0.length) { $('#defcard').style.display = 'none' } else {
@@ -276,7 +282,7 @@ function render() {
         if (sh > 0) al += `<div class="alert">${tip(c, `${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）`)}</div>`;
       }
     });
-    dh += `<p class="note">和 00881 一起每 ${S.params.core_k} 個交易日調回目標比例。黃金加碼金額不到約 ${fmt(MIN_G)} 元（約 600 美元）時買 00635U，超過才買 GLDM；減碼先賣 00635U。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
+    dh += `<p class="note">和核心 ${core} 一起每 ${S.params.core_k} 個交易日調回目標比例。黃金加碼金額不到約 ${fmt(MIN_G)} 元（約 600 美元）時買 00635U，超過才買 GLDM；減碼先賣 00635U。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
     $('#defs').innerHTML = dh.replace('<p class="note">', al + '<p class="note">');
   }
 
