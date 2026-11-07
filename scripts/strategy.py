@@ -7,6 +7,7 @@ warnings.filterwarnings('ignore')
 POOL_N, SAT_N, SAT_W, CORE, CORE_W, CORE_K = 500, 7, 0.45 / 7, '00881', 0.225, 60   # 2026-11-05 使用者改為：00881 22.5%＋短債 13.5%＋黃金 9%＋衛星 7 檔共 45%＋自由資金 10%，每 60 交易日調回
 DEF = {'00719B': 0.135, 'GLDM': 0.09}   # 防守部位：美債 1–3 年、黃金（2026-11-06 改為複委託實體黃金 ETF GLDM，避開 00635U 期貨轉倉損耗）
 DEF_NAMES = {'00719B': '元大美債1-3', 'GLDM': 'SPDR 黃金迷你（複委託）'}
+GOLD_ALT = {'00635U': '元大S&P黃金'}   # 2026-11-07 使用者決定：已持有的 00635U 留著，與 GLDM 合計算黃金 9%
 FREE_W = 0.10   # 自由資金（策略不使用）
 BRK_LB, HOLD_H250, HOLD_RNH = 60, 0.85, -0.20
 EXCLUDE = set()   # 2026-11-05 起台積電也是候選，可被選進賣出（不再固定持有）
@@ -110,7 +111,7 @@ def fetch_tpex(day):
 def append_day(st, day, df):
     adj, money, close = st['adj'], st['money'], st['close']
     df = df[df.close > 0].drop_duplicates('code').set_index('code')
-    df = df[[bool(re.fullmatch(r'[1-9]\d{3}', c)) or c == CORE or c in DEF for c in df.index]]
+    df = df[[bool(re.fullmatch(r'[1-9]\d{3}', c)) or c == CORE or c in DEF or c in GOLD_ALT for c in df.index]]
     new_cols = list(df.index.difference(adj.columns))
     if new_cols:
         cols = list(adj.columns) + new_cols

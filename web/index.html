@@ -56,7 +56,10 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <h2>我的持股與現金</h2>
   <label class="note" for="cash">證券戶可用現金（元）</label>
   <input id="cash" type="number" inputmode="numeric" placeholder="例如 50000">
-  <div style="margin-top:10px" id="hlist"></div>
+  <div class="note" style="margin-top:12px">固定部位（只要填股數，沒有就留空）</div>
+  <div id="fixlist"></div>
+  <div class="note" style="margin-top:12px">衛星與其他股票</div>
+  <div style="margin-top:6px" id="hlist"></div>
   <label class="note" for="nobuy" style="display:block;margin-top:12px">不買名單（例如正在被公開收購、全額交割、停止交易的股票；代號用逗號分開）</label>
   <input id="nobuy" placeholder="例如 6214">
   <p class="note" id="autonote"></p>
@@ -66,7 +69,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
     <button class="ghost" id="addRow">＋ 新增一檔</button>
     <button id="save">儲存並重新計算</button>
   </div>
-  <p class="note">持股只存在這支手機（或這個瀏覽器）裡，不會上傳。00881 也要填進來。</p>
+  <p class="note">持股只存在這支手機（或這個瀏覽器）裡，不會上傳。</p>
   <details><summary>備份／還原持股</summary>
     <div class="btns"><button class="ghost" id="exp">複製備份文字</button><button class="ghost" id="imp">貼上還原</button></div>
   </details>
@@ -81,7 +84,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 <section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
 
 <footer>
-  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 GLDM（複委託）9%，每 60 個交易日調回；另留 10% 自由資金。<br>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 9%（GLDM 複委託＋00635U 合計），每 60 個交易日調回；另留 10% 自由資金。<br>
   訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
 </footer>
 </main>
@@ -98,26 +101,37 @@ let CASH = store.get('cash', 0);
 let NOBUY = store.get('nobuy', []);
 let FIXED = store.get('fixed', []);
 let S = null;
+const FIXC = [['00881', '核心 00881'], ['00719B', '短債 00719B'], ['GLDM', '黃金 GLDM'], ['00635U', '黃金 00635U']];
+const isFix = c => FIXC.some(f => f[0] === c);
+let OTH = [];
 
 function renderEditor() {
   $('#cash').value = CASH || '';
   $('#nobuy').value = NOBUY.join(', ');
   $('#fixed').value = FIXED.join(', ');
-  $('#hlist').innerHTML = H.map((h, i) => `<div class="hrow">
-    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330、00719B）" autocapitalize="characters" autocomplete="off" spellcheck="false">
+  const sh = c => H.filter(h => h.c === c).reduce((a, h) => a + (+h.s || 0), 0);
+  $('#fixlist').innerHTML = FIXC.map(([c, lab]) => `<div class="hrow"><div style="flex:1;align-self:center"><b>${lab}</b></div>
+    <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('');
+  OTH = H.filter(h => !isFix(h.c));
+  $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
     <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
 }
 function readEditor() {
-  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; H[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
-  H = H.filter(h => h.c);
+  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; OTH[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
+  const fx = [...document.querySelectorAll('#fixlist input')].map(el => ({c: el.dataset.fix, s: +el.value || 0})).filter(h => h.s > 0);
+  // 若在下方又填了固定部位的代號，合併到上方
+  OTH.filter(h => isFix(h.c)).forEach(h => { const f = fx.find(x => x.c === h.c); if (f) f.s += h.s || 0; else if (h.s > 0) fx.push({c: h.c, s: h.s}) });
+  OTH = OTH.filter(h => !isFix(h.c));
+  H = fx.concat(OTH.filter(h => h.c || h.s || h.nw)).map(h => (h.c || h.s ? (delete h.nw, h) : h));
   CASH = +$('#cash').value || 0;
   NOBUY = $('#nobuy').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('nobuy', NOBUY);
   FIXED = $('#fixed').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('fixed', FIXED);
   store.set('holdings', H); store.set('cash', CASH);
 }
-$('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); H.splice(+d, 1); renderEditor() } });
-$('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0}); renderEditor() };
+$('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); const x = OTH[+d]; H.splice(H.indexOf(x), 1); renderEditor() } });
+$('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
 $('#save').onclick = () => { readEditor(); renderEditor(); render() };
 $('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, NOBUY, FIXED}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
 $('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; NOBUY = o.NOBUY || []; store.set('nobuy', NOBUY); FIXED = o.FIXED || FIXED; store.set('fixed', FIXED); store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
@@ -128,7 +142,8 @@ function row(name, code, why, big, small) {
 
 function render() {
   if (!S) return;
-  const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS = Object.keys(DEFW), FREE = S.params.free_w || 0;
+  const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
+  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), DEFS = DEFS0.concat(GALT);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
   for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c)) missing.push(c) }
@@ -203,17 +218,37 @@ function render() {
     if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">00881 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? `這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${(S.params.core_w * 100).toFixed(1)}%。` : ''}</div>`;
   }
   $('#core').innerHTML = coreHtml;
-  if (!DEFS.length) { $('#defcard').style.display = 'none' } else {
+  if (!DEFS0.length) { $('#defcard').style.display = 'none' } else {
     let dh = '';
-    DEFS.forEach(c => {
-      const pr = P[c], v = (held[c] || 0) * (pr || 0), w = total ? v / total : 0, tw = DEFW[c];
-      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pr ? (/^\d/.test(c) ? `收盤 ${fmt(pr, 2)}` : `約 ${fmt(pr, 2)} 元／股（美元收盤×匯率）`) : '價格等下一次更新');
+    const fx2 = S.params.usdtwd || 32, MIN_G = 600 * fx2;   // GLDM 單筆至少約 600 美元，複委託最低手續費才不會太貴
+    const tip = (c, txt) => S.core.rebalance_today ? '今天是調整日：' + txt : '偏離目標超過 3%：' + txt;
+    const pxNote = c => P[c] ? (/^\d/.test(c) ? `收盤 ${fmt(P[c], 2)}` : `約 ${fmt(P[c], 2)} 元／股（美元收盤×匯率）`) : '價格等下一次更新';
+    DEFS0.forEach(c => {
+      const tw = DEFW[c];
+      if (c === 'GLDM') {
+        const gs = ['GLDM'].concat(GALT), val = x => (held[x] || 0) * (P[x] || 0), v = gs.reduce((a, x) => a + val(x), 0), w = total ? v / total : 0;
+        dh += row('黃金（GLDM＋00635U 合計）', '', `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%<br>` + gs.map(x => `${x}：${+(held[x] || 0).toFixed(4)} 股｜${pxNote(x)}`).join('<br>'), `約 ${fmt(v)} 元`, '');
+        if (total && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
+          const diff = tw * total - v, alt = GALT[0];
+          if (diff > 0) {
+            const useAlt = diff < MIN_G || !P['GLDM'], code = useAlt ? alt : 'GLDM', n = P[code] ? Math.floor(diff / P[code]) : 0;
+            if (n > 0) dh += `<div class="alert">${tip(code, `買進約 ${fmt(diff)} 元，建議買 ${code} 約 ${fmt(n)} 股`)}${useAlt && P['GLDM'] ? `（金額不到約 ${fmt(MIN_G)} 元，買 GLDM 手續費太貴）` : ''}</div>`;
+          } else {
+            let need = -diff; const parts = [];
+            for (const x of [alt, 'GLDM']) { if (!P[x] || !held[x] || need <= 0) continue; const n = Math.min(held[x], Math.floor(need / P[x])); if (n > 0) { parts.push(`${x} 約 ${fmt(n)} 股`); need -= n * P[x] } }
+            if (parts.length) dh += `<div class="alert">${tip('', `賣出約 ${fmt(-diff)} 元：${parts.join('、')}（先賣 00635U）`)}</div>`;
+          }
+        }
+        return;
+      }
+      const pr = P[c], v = (held[c] || 0) * (pr || 0), w = total ? v / total : 0;
+      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pxNote(c));
       if (total && pr && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
         const diff = tw * total - v, sh = Math.floor(Math.abs(diff) / pr);
-        if (sh > 0) dh += `<div class="alert">${S.core.rebalance_today ? '今天是調整日：' : '偏離目標超過 3%：'}${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
+        if (sh > 0) dh += `<div class="alert">${tip(c, `${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）`)}</div>`;
       }
     });
-    dh += `<p class="note">和 00881 一起每 ${S.params.core_k} 個交易日調回目標比例。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
+    dh += `<p class="note">和 00881 一起每 ${S.params.core_k} 個交易日調回目標比例。黃金加碼金額不到約 ${fmt(MIN_G)} 元（約 600 美元）時買 00635U，超過才買 GLDM；減碼先賣 00635U。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
     $('#defs').innerHTML = dh;
   }
 
