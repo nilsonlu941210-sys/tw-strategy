@@ -138,9 +138,9 @@ function render() {
   const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), DEFS = DEFS0.concat(GALT);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
-  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c)) missing.push(c) }
+  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c) && !isFix(c)) missing.push(c) }
   const total = CASH + stockVal;
-  const sat = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && !FIXED.includes(c));
+  const sat = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && !isFix(c) && !FIXED.includes(c));
   const fixedHeld = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && FIXED.includes(c));
   const sells = [], holds = [];
   sat.forEach(c => {
@@ -177,6 +177,7 @@ function render() {
     <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
     <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
     <div><div class="k">00881 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
+    ${(Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5 ? `<div class="alert"><b>這份資料是 ${S.date} 的舊資料（可能是網路不穩時讀到手機裡的備份），請先不要照著買賣，連上網路後重新整理。</b></div>` : ''}
     ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
     ${held[core] && P[core] == null ? `<div class="alert">00881 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
     ${total === 0 ? `<div class="alert">先在下方輸入現金和持股，才會算出買賣股數。</div>` : ''}`;
