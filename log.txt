@@ -1,3 +1,12 @@
 總檔數 3016 本工作 754
 100 2332 筆數 28918 空 13 失敗 0
 200 3028 筆數 52852 空 34 失敗 0
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4162
+300 4162 筆數 81189 空 44 失敗 0
