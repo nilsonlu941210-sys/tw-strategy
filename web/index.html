@@ -60,11 +60,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <div id="fixlist"></div>
   <div class="note" style="margin-top:12px">衛星與其他股票</div>
   <div style="margin-top:6px" id="hlist"></div>
-  <label class="note" for="nobuy" style="display:block;margin-top:12px">不買名單（例如正在被公開收購、全額交割、停止交易的股票；代號用逗號分開）</label>
-  <input id="nobuy" placeholder="例如 6214">
   <p class="note" id="autonote"></p>
-  <label class="note" for="fixed" style="display:block;margin-top:12px">固定持有（永遠不會叫你賣、佔 1 個名額、算進總資產；代號用逗號分開）</label>
-  <input id="fixed" placeholder="例如 2330">
   <div class="btns">
     <button class="ghost" id="addRow">＋ 新增一檔</button>
     <button id="save">儲存並重新計算</button>
@@ -98,8 +94,8 @@ const store = {
 };
 let H = store.get('holdings', [{c: '00881', s: 0}]);
 let CASH = store.get('cash', 0);
-let NOBUY = store.get('nobuy', []);
-let FIXED = store.get('fixed', []);
+const NOBUY = [], FIXED = [];   // 2026-11-07 使用者決定刪除手動不買名單與固定持有
+try { localStorage.removeItem('nobuy'); localStorage.removeItem('fixed') } catch (e) {}
 let S = null;
 const FIXC = [['00881', '核心 00881'], ['00719B', '短債 00719B'], ['GLDM', '黃金 GLDM'], ['00635U', '黃金 00635U']];
 const isFix = c => FIXC.some(f => f[0] === c);
@@ -107,8 +103,6 @@ let OTH = [];
 
 function renderEditor() {
   $('#cash').value = CASH || '';
-  $('#nobuy').value = NOBUY.join(', ');
-  $('#fixed').value = FIXED.join(', ');
   const sh = c => H.filter(h => h.c === c).reduce((a, h) => a + (+h.s || 0), 0);
   $('#fixlist').innerHTML = FIXC.map(([c, lab]) => `<div class="hrow"><div style="flex:1;align-self:center"><b>${lab}</b></div>
     <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('');
@@ -126,15 +120,13 @@ function readEditor() {
   OTH = OTH.filter(h => !isFix(h.c));
   H = fx.concat(OTH.filter(h => h.c || h.s || h.nw)).map(h => (h.c || h.s ? (delete h.nw, h) : h));
   CASH = +$('#cash').value || 0;
-  NOBUY = $('#nobuy').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('nobuy', NOBUY);
-  FIXED = $('#fixed').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); store.set('fixed', FIXED);
   store.set('holdings', H); store.set('cash', CASH);
 }
 $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); const x = OTH[+d]; H.splice(H.indexOf(x), 1); renderEditor() } });
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
 $('#save').onclick = () => { readEditor(); renderEditor(); render() };
-$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, NOBUY, FIXED}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
-$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; NOBUY = o.NOBUY || []; store.set('nobuy', NOBUY); FIXED = o.FIXED || FIXED; store.set('fixed', FIXED); store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
 
 function row(name, code, why, big, small) {
   return `<div class="row"><div class="l"><b>${name || code}</b><span class="code">${code}</span>${why ? `<div class="why">${why}</div>` : ''}</div><div class="r"><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}</div></div>`;
@@ -202,7 +194,7 @@ function render() {
     return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
-    + (blocked.length ? `<p class="note">已依不買名單略過：${blocked.map(b => (b.n || '') + ' ' + b.c + (AUTO[b.c] && !NOBUY.includes(b.c) ? `（${AUTO[b.c]}）` : '')).join('、')}</p>` : '');
+    + (blocked.length ? `<p class="note">系統自動略過：${blocked.map(b => (b.n || '') + ' ' + b.c + (AUTO[b.c] && !NOBUY.includes(b.c) ? `（${AUTO[b.c]}）` : '')).join('、')}</p>` : '');
 
   const autoHeld = Object.keys(AUTO).filter(c => held[c]);
   $('#autonote').innerHTML = `系統每天自動排除 ${Object.keys(AUTO).length} 檔（公開收購、全額交割、暫停/停止交易、即將下市），不用手動輸入。` + (autoHeld.length ? `<br><b>你持有的 ${autoHeld.map(c => (S.names[c] || '') + ' ' + c + '（' + AUTO[c] + '）').join('、')} 在名單上，要不要賣請自己判斷。</b>` : '');
