@@ -46,6 +46,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
 </header>
 
 <section class="card" id="summary"></section>
+<section class="card" id="perfcard"><h2>我的績效 vs 0050</h2><div id="perf"></div></section>
 <section class="card"><h2><span class="tag t-sell">賣出</span>明天要賣</h2><div id="sells"></div></section>
 <section class="card"><h2><span class="tag t-buy">買進</span>明天要買</h2><div id="buys"></div></section>
 <section class="card"><h2><span class="tag t-core">核心</span><span id="coreTitle">00881</span></h2><div id="core"></div></section>
@@ -56,6 +57,8 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
   <h2>我的持股與現金</h2>
   <label class="note" for="cash">證券戶可用現金（元）</label>
   <input id="cash" type="number" inputmode="numeric" placeholder="例如 50000">
+  <label class="note" for="flow" style="display:block;margin-top:8px">這次有存入或提出錢嗎？（存入填正數、提出填負數，沒有就留空；用來算績效，不會算成賺賠）</label>
+  <input id="flow" type="number" inputmode="numeric" placeholder="例如 10000 或 -5000">
   <div class="note" style="margin-top:12px">固定部位（只要填股數，沒有就留空）</div>
   <div id="fixlist"></div>
   <div class="note" style="margin-top:12px">衛星與其他股票</div>
@@ -94,6 +97,7 @@ const store = {
 };
 let H = store.get('holdings', [{c: '00881', s: 0}]);
 let CASH = store.get('cash', 0);
+let PERF = store.get('perf', []), PENDFLOW = 0;
 const NOBUY = [], FIXED = [];   // 2026-11-07 使用者決定刪除手動不買名單與固定持有
 try { localStorage.removeItem('nobuy'); localStorage.removeItem('fixed') } catch (e) {}
 let S = null;
@@ -120,13 +124,14 @@ function readEditor() {
   OTH = OTH.filter(h => !isFix(h.c));
   H = fx.concat(OTH.filter(h => h.c || h.s || h.nw)).map(h => (h.c || h.s ? (delete h.nw, h) : h));
   CASH = +$('#cash').value || 0;
+  PENDFLOW += +$('#flow').value || 0;
   store.set('holdings', H); store.set('cash', CASH);
 }
 $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); const x = OTH[+d]; H.splice(H.indexOf(x), 1); renderEditor() } });
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
-$('#save').onclick = () => { readEditor(); renderEditor(); render() };
-$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
-$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+$('#save').onclick = () => { readEditor(); $('#flow').value = ''; renderEditor(); render() };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, PERF}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; if (o.PERF) { PERF = o.PERF; store.set('perf', PERF) } store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
 
 function row(name, code, why, big, small) {
   return `<div class="row"><div class="l"><b>${name || code}</b><span class="code">${code}</span>${why ? `<div class="why">${why}</div>` : ''}</div><div class="r"><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}</div></div>`;
@@ -255,11 +260,43 @@ function render() {
   };
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
+  try { snap(total); renderPerf() } catch (e) { console.log(e) }
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
 }
 
 renderEditor();
 
+
+function snap(total) {
+  if (!S || !total || (Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5) return;   // 舊資料不記
+  const d = S.date, b = S.bench && S.bench.adj;
+  let x = PERF.find(p => p.d === d);
+  if (!x) { x = {d, f: 0}; PERF.push(x); PERF.sort((a, c) => a.d < c.d ? -1 : 1) }
+  x.v = Math.round(total); if (b) x.b = b;
+  if (PENDFLOW) { x.f = (x.f || 0) + PENDFLOW; PENDFLOW = 0 }
+  store.set('perf', PERF);
+}
+function renderPerf() {
+  const A = PERF.filter(p => p.v > 0), el = $('#perf');
+  if (A.length < 2) { el.innerHTML = `<p class="note">${A.length ? `已從 ${A[0].d} 開始記錄。` : ''}之後每天收盤後打開 App，就會累積你的績效並和 0050 比較。</p>`; return }
+  const s = [1]; for (let i = 1; i < A.length; i++) s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / A[i - 1].v);
+  const k = A.findIndex(p => p.b), last = A.length - 1;
+  const pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  const since = base => { const r = s[last] / s[base] - 1, hasB = A[base].b && A[last].b, b = hasB ? A[last].b / A[base].b - 1 : null;
+    return `<div class="row"><div class="l"><b>__L__</b><div class="why">從 ${A[base].d} 收盤起算</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '0050 資料還沒有' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
+  const y0 = A[last].d.slice(0, 4), m0 = A[last].d.slice(0, 7);
+  const lastBefore = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
+  const b0 = k < 0 ? 0 : k;
+  let h = since(b0).replace('__L__', '開始記錄以來') + since(lastBefore(y0 + '-01-01')).replace('__L__', '今年以來') + since(lastBefore(m0 + '-01')).replace('__L__', '本月');
+  if (k >= 0 && last - k >= 2) {
+    const xs = A.slice(k), sv = xs.map((p, i) => s[k + i] / s[k] - 1), bv = xs.map(p => p.b ? p.b / A[k].b - 1 : null);
+    const all = sv.concat(bv.filter(x => x != null)), lo = Math.min(0, ...all), hi = Math.max(0, ...all), W = 320, Hh = 120, X = i => 8 + i * (W - 16) / (xs.length - 1), Y = v => Hh - 16 - (v - lo) / ((hi - lo) || 1) * (Hh - 32);
+    const line = (arr, col) => `<polyline fill="none" stroke="${col}" stroke-width="2" points="${arr.map((v, i) => v == null ? '' : X(i) + ',' + Y(v)).join(' ')}"/>`;
+    h += `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;margin-top:8px" role="img" aria-label="累積報酬：我的組合與 0050"><line x1="8" x2="${W - 8}" y1="${Y(0)}" y2="${Y(0)}" stroke="#ccc" stroke-dasharray="3 3"/>${line(bv, '#999')}${line(sv, '#d33')}</svg><p class="note"><span style="color:#d33">━ 我的組合</span>　<span style="color:#999">━ 0050（含配息）</span></p>`;
+  }
+  h += `<p class="note">已記錄 ${A.length} 天。存入／提出的錢不算進報酬。只有打開 App 的日子會記錄，沒打開的日子會跳過，不影響累積計算。</p>`;
+  el.innerHTML = h;
+}
 
 function collapse(el, rowsHtml, n = 2) {
   if (rowsHtml.length <= n) { el.innerHTML = rowsHtml.join(''); return }

@@ -44,7 +44,7 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
         cl = st['close'].iloc[-1]; m = both.index.intersection(cl.dropna().index)
         diff = (both.loc[m, 'close'] - cl[m]).abs()
         print(f'  檢查：收盤價與已存資料相符 {int((diff < 1e-6).sum())}/{len(m)} 檔')
-        for cc, nn in [(CORE, '國泰台灣科技龍頭')] + list(DEF_NAMES.items()) + list(GOLD_ALT.items()):
+        for cc, nn in [(CORE, '國泰台灣科技龍頭')] + list(DEF_NAMES.items()) + list(GOLD_ALT.items()) + [(BENCH, '元大台灣50')]:
             if cc in both.index and (cc not in st['close'].columns or pd.isna(st['close'][cc].iloc[-1])):
                 st['close'].loc[st['close'].index[-1], cc] = both.loc[cc, 'close']; st['names'][cc] = nn
                 print(f"  補上 {cc} 價格 {both.loc[cc, 'close']}")
@@ -80,6 +80,7 @@ out = dict(
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
     pool=pool_info,
     auto_nobuy=st.get('hard_events', {}),
+    bench=(dict(c=BENCH, adj=f(st['adj'][BENCH].ffill().iloc[-1], 6)) if BENCH in st['adj'].columns and st['adj'][BENCH].notna().any() else None),
     prices={c: f(v, 2) for c, v in px.dropna().items()},
     names={c: nm(c) for c in px.dropna().index},
     history=st['history'], added_days=log,
