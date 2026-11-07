@@ -21,3 +21,4 @@
 非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6902
 非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 6902
 600 6902 筆數 130517 空 128 失敗 0
+700 8109 筆數 138369 空 132 失敗 0
