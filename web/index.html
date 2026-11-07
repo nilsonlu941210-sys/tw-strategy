@@ -177,6 +177,8 @@ function render() {
     <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
     <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
     <div><div class="k">00881 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
+    ${total ? (() => { const want = FREE * total, free = Math.min(CASH, want), stratCash = Math.max(0, CASH - want);
+      return `<div class="row" style="margin-top:10px"><div class="l"><b>自由使用資金</b><div class="why">總資產的 ${Math.round(FREE * 100)}%，策略不會動用，可以自己操作${CASH < want ? `<br><b>現金不夠：目前現金只有 ${fmt(CASH)} 元，比 ${Math.round(FREE * 100)}% 少 ${fmt(want - CASH)} 元，策略這次不會再用現金買股</b>` : ''}</div></div><div class="r"><div class="big">${fmt(free)} 元</div><div class="small">策略可用現金 ${fmt(stratCash)} 元</div></div></div>`; })() : ''}
     ${(Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5 ? `<div class="alert"><b>這份資料是 ${S.date} 的舊資料（可能是網路不穩時讀到手機裡的備份），請先不要照著買賣，連上網路後重新整理。</b></div>` : ''}
     ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
     ${held[core] && P[core] == null ? `<div class="alert">00881 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
