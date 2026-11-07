@@ -112,8 +112,8 @@ function renderEditor() {
     <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('');
   OTH = H.filter(h => !isFix(h.c));
   $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
-    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
-    <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="numeric">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330、QQQ）" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="decimal" step="any">
     <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
 }
 function readEditor() {
@@ -140,7 +140,7 @@ function row(name, code, why, big, small) {
 function render() {
   if (!S) return;
   const P = S.prices, core = S.params.core, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
-  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), DEFS = DEFS0.concat(GALT);
+  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {QQQ: 'Invesco QQQ（複委託）'}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
   for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c) && !isFix(c)) missing.push(c) }
@@ -259,6 +259,7 @@ function render() {
     return room <= 0.05 ? `<br><span class="danger">⚠ 接近停損：${txt}</span>` : `<br>${txt}`;
   };
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
+  $('#holds').innerHTML += OTH2.filter(c => held[c]).map(c => row(OTHN[c] || c, c, `其他持股（不受策略管理，不會叫你賣）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${+held[c].toFixed(4)} 股`, P[c] ? `約 ${fmt(held[c] * P[c])} 元（美元收盤×匯率）` : '價格等下一次更新')).join('');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   try { snap(total); renderPerf() } catch (e) { console.log(e) }
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
