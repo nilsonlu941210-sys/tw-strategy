@@ -12,3 +12,4 @@
 非 200 402 402 Requests reach the upper limit. https://finmindtrade.com/ 4169
 400 5352 筆數 96749 空 80 失敗 0
 500 6238 筆數 114701 空 127 失敗 0
+600 6901 筆數 130695 空 129 失敗 0
