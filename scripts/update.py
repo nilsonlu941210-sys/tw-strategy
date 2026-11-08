@@ -70,6 +70,20 @@ for c in st['pool']:
     ok = bool(s['HOLD'].get(c, False))
     why = '' if ok else ('營收轉弱' if not (s['rnh'].get(c, np.nan) > HOLD_RNH) else ('股價離一年高點超過 15%' if not (s['h250'].get(c, np.nan) >= HOLD_H250) else '當天無成交或資料不足'))
     pool_info[c] = dict(n=nm(c), hold=ok, why=why, rnh=f(s['rnh'].get(c)), h250=f(s['h250'].get(c)), sc=f(s['score'].get(c), 3))
+# ---- 影子版本紙上追蹤（v75）：現行規則 vs 營收連續 ≥3 月創新高優先 ----
+try:
+    stk = streak_asof(st['revenue'], d).reindex(st['adj'].columns)
+    sc_sh = s['score'] + SHADOW_B * (stk.fillna(0) >= SHADOW_N)
+    nobuy = set(st.get('hard_events', {}))
+    P0 = st.setdefault('paper', {})
+    for k in ('official', 'shadow'):
+        if k not in P0: P0[k] = dict(hold={}, cash=float(PAPER_START), start=str(d.date()))
+    pxd = st['close'].iloc[-1]
+    paper_step(P0['official'], d, pxd, s['SIG'], s['HOLD'], s['score'], nobuy)
+    paper_step(P0['shadow'], d, pxd, s['SIG'], s['HOLD'], sc_sh, nobuy)
+    print('  紙上追蹤：', {k: (v['nav'][-1], list(v['hold'])) for k, v in P0.items()})
+except Exception as e:
+    print('  紙上追蹤失敗：', e); stk = pd.Series(dtype=float)
 hist = st.get('history', [])
 today_rec = dict(date=str(d.date()), buys=[dict(c=c, n=nm(c)) for c in buys.index[:12]])
 hist = [h for h in hist if h['date'] != today_rec['date']] + [today_rec]; st['history'] = hist[-30:]
@@ -77,7 +91,9 @@ out = dict(
     date=str(d.date()), generated=now.strftime('%Y-%m-%d %H:%M'), pool_quarter=st['pool_quarter'], pool_size=len(st['pool']),
     params=dict(sat_n=SAT_N, sat_w=SAT_W, core=CORE, core_w=CORE_W, core_k=CORE_K, defs=DEF, def_names=DEF_NAMES, gold_alt=GOLD_ALT, other=OTHER_HOLD, free_w=FREE_W, hold_h250=HOLD_H250, hold_rnh=HOLD_RNH, brk=BRK_LB, swap_k=SWAP_K, swap_m=SWAP_M),
     core=dict(code=CORE, name=nm(CORE) or '國泰台灣科技龍頭', price=f(px.get(CORE), 2), days_since=n_since % CORE_K, rebalance_today=(n_since % CORE_K == 0)),
-    buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3)) for c in buys.index],
+    buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3), stk=int(stk.get(c, 0) or 0)) for c in buys.index],
+    paper={k: dict(start=v['start'], nav=v['nav'][-260:], hold=[dict(c=c, n=nm(c)) for c in v['hold']], pend_buy=[dict(c=c, n=nm(c)) for c in v.get('pend_buy', [])], pend_sell=[dict(c=c, n=nm(c)) for c in v.get('pend_sell', [])]) for k, v in st.get('paper', {}).items()},
+    shadow_rule=dict(n=SHADOW_N, b=SHADOW_B),
     pool=pool_info,
     auto_nobuy=st.get('hard_events', {}),
     bench=(dict(c=BENCH, adj=f(st['adj'][BENCH].ffill().iloc[-1], 6)) if BENCH in st['adj'].columns and st['adj'][BENCH].notna().any() else None),

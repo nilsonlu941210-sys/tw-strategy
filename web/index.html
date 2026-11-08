@@ -62,6 +62,7 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="pane" id="p-home">
 <section class="card" id="summary"></section>
 <section class="card" id="perfcard"><h2>我的績效 vs 0050</h2><div id="perf"></div></section>
+<section class="card" id="shadowcard"><h2>影子版本追蹤 <span class="tag t-warn">紙上測試</span></h2><div id="shadow"></div></section>
 <footer>
   規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 9%（GLDM 複委託＋00635U 合計），每 60 個交易日調回；另留 10% 自由資金。<br>
   訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
@@ -233,7 +234,7 @@ function render() {
     if (total && short) { sh = 0; note = '（現金不足，先跳過）'; }
     else if (total && afford < sh) { sh = afford; short = true; note = sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'; }
     avail -= sh * (b.price || 0) * 1.0004;
-    return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
+    return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}${b.stk >= 2 ? `（連續 ${b.stk} 個月）` : ''}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
     + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
     + (blocked.length ? `<p class="note">系統自動略過：${blocked.map(b => (b.n || '') + ' ' + b.c + (AUTO[b.c] && !NOBUY.includes(b.c) ? `（${AUTO[b.c]}）` : '')).join('、')}</p>` : '');
@@ -296,6 +297,7 @@ function render() {
   $('#holds').innerHTML += OTH2.filter(c => held[c]).map(c => row(OTHN[c] || c, c, `其他持股（不受策略管理，不會叫你賣）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${+held[c].toFixed(4)} 股`, P[c] ? `約 ${fmt(held[c] * P[c])} 元（美元收盤×匯率）` : '價格等下一次更新')).join('');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   try { snap(total); renderPerf() } catch (e) { console.log(e) }
+  try { renderShadow() } catch (e) { console.log(e) }
   $('#nb-sig').textContent = (sells.length + buys.length) || '';
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
 }
@@ -311,6 +313,19 @@ function snap(total) {
   x.v = Math.round(total); if (b) x.b = b;
   if (PENDFLOW) { x.f = (x.f || 0) + PENDFLOW; PENDFLOW = 0 }
   store.set('perf', PERF);
+}
+function renderShadow() {
+  const PP = S.paper, el = $('#shadow');
+  if (!PP || !PP.official || !PP.shadow) { $('#shadowcard').style.display = 'none'; return }
+  const o = PP.official, w = PP.shadow, n = Math.min(o.nav.length, w.nav.length);
+  const r = a => a.nav[a.nav.length - 1][1] / a.nav[0][1] - 1, pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  const names = l => l.length ? l.map(x => x.n || x.c).join('、') : '—';
+  const diffB = w.pend_buy.filter(x => !o.pend_buy.some(y => y.c === x.c)), diffO = o.pend_buy.filter(x => !w.pend_buy.some(y => y.c === x.c));
+  let h = `<p class="note">兩個紙上組合都從 ${o.start} 用 100 萬開始，只模擬衛星 7 檔（收盤成交、含手續費與稅），不影響你的實際下單。影子版本：營收連續 ${S.shadow_rule ? S.shadow_rule.n : 3} 個月以上創新高的股票優先。</p>
+  <div class="kpi"><div><div class="k">現行規則</div><div class="v">${pc(r(o))}</div></div><div><div class="k">影子版本</div><div class="v">${pc(r(w))}</div></div><div><div class="k">差距</div><div class="v">${pc(r(w) - r(o))}</div></div></div>`;
+  if (diffB.length || diffO.length) h += `<div class="alert">明天兩者選股不同：影子版本會買 ${names(diffB)}${diffO.length ? `；現行規則會買 ${names(diffO)}` : ''}</div>`;
+  h += `<p class="note">現行持股：${names(o.hold)}<br>影子持股：${names(w.hold)}<br>已追蹤 ${n} 個交易日。至少跑半年到一年再判斷，短期差距多半是運氣。</p>`;
+  el.innerHTML = h;
 }
 function renderPerf() {
   const A = PERF.filter(p => p.v > 0), el = $('#perf');

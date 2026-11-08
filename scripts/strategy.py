@@ -36,6 +36,57 @@ def rnh_asof(rev, day):
         if len(x): out[s] = x.iloc[-1]
     return pd.Series(out, dtype=float)
 
+def streak_asof(rev, day):
+    """每檔股票：截至 day 可用的月營收，連續幾個月創 12 個月新高（v75 影子版本用）"""
+    r = rev.copy()
+    r['avail'] = pd.to_datetime(dict(year=r.revenue_year, month=r.revenue_month, day=1)) + pd.offsets.MonthBegin(1) + pd.Timedelta(days=10)
+    r = r[r.avail <= day]
+    out = {}
+    for s, g in r.groupby('stock_id'):
+        ser = g.assign(p=pd.PeriodIndex.from_fields(year=g.revenue_year, month=g.revenue_month, freq='M')).drop_duplicates('p', keep='last').set_index('p').revenue.astype(float)
+        ser = ser.reindex(pd.period_range(ser.index.min(), ser.index.max(), freq='M'))
+        prev = ser.shift(1).rolling(12, min_periods=12).max(); hi = (ser > prev) & (prev > 0)
+        k = 0
+        for v in hi.values[::-1]:
+            if not v: break
+            k += 1
+        out[s] = k
+    return pd.Series(out, dtype=float)
+
+SHADOW_N, SHADOW_B = 3, 10.0   # 2026-11-08 影子版本（v75）：營收連續 ≥3 個月創新高者分數 +10（排序優先），只做紙上追蹤
+PAPER_START = 1_000_000
+BUY_C, SELL_C = 0.000399, 0.000399 + 0.003
+
+def paper_step(pp, d, px, sig, hold_ok, score, nobuy):
+    """紙上組合（只有衛星 7 檔）：先用今天收盤執行昨天留下的委託，再依今天訊號留下明天的委託"""
+    if pp.get('last') == str(d.date()): return pp
+    hold, cash = pp['hold'], pp['cash']
+    for c in pp.get('pend_sell', []):
+        if c in hold and np.isfinite(px.get(c, np.nan)): cash += hold.pop(c) * px[c] * (1 - SELL_C)
+    nav = cash + sum(n * px.get(c, 0) for c, n in hold.items() if np.isfinite(px.get(c, np.nan)))
+    for c in pp.get('pend_buy', []):
+        p = px.get(c, np.nan)
+        if c in hold or len(hold) >= SAT_N or not np.isfinite(p) or p <= 0: continue
+        amt = min(cash, nav / SAT_N)
+        if amt <= 0: break
+        hold[c] = amt * (1 - BUY_C) / p; cash -= amt
+    nav = cash + sum(n * px.get(c, 0) for c, n in hold.items() if np.isfinite(px.get(c, np.nan)))
+    # 明天的委託
+    sells = [c for c in hold if not hold_ok.get(c, False)]
+    cand = score[sig].dropna().sort_values(ascending=False)
+    cand = cand[[c for c in cand.index if c not in nobuy and c not in hold]]
+    tops = (pp.get('tops', []) + [cand.index[0] if len(cand) else ''])[-5:]
+    keep = [c for c in hold if c not in sells]
+    if len(cand) and len(keep) >= SAT_N:
+        top = cand.index[0]
+        if tops.count(top) >= SWAP_K:
+            low = min(keep, key=lambda c: score.get(c, -9) if np.isfinite(score.get(c, np.nan)) else -9)
+            if cand.iloc[0] - (score.get(low, -9) if np.isfinite(score.get(low, np.nan)) else -9) >= SWAP_M: sells.append(low)
+    free = SAT_N - (len(hold) - len(sells))
+    pp.update(hold=hold, cash=cash, pend_sell=sells, pend_buy=list(cand.index[:max(free, 0)]), tops=tops, last=str(d.date()))
+    pp.setdefault('nav', []).append([str(d.date()), round(nav, 0)]); pp['nav'] = pp['nav'][-800:]
+    return pp
+
 def compute_pool(st, i):
     """第 i 列（新季第一天）之前的資料決定本季 500 檔"""
     adj, money = st['adj'], st['money']
