@@ -62,6 +62,7 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="pane" id="p-home">
 <section class="card" id="summary"></section>
 <section class="card" id="perfcard"><h2>我的績效 vs 0050</h2><div id="perf"></div></section>
+<section class="card" id="statcard"><h2>風險與交易統計</h2><div id="stats"></div></section>
 <section class="card" id="shadowcard"><h2>影子版本追蹤 <span class="tag t-warn">紙上測試</span></h2><div id="shadow"></div></section>
 <footer>
   規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 9%（GLDM 複委託＋00635U 合計），每 60 個交易日調回；另留 10% 自由資金。<br>
@@ -161,7 +162,32 @@ function readEditor() {
 }
 $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); const x = OTH[+d]; H.splice(H.indexOf(x), 1); renderEditor() } });
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
-$('#save').onclick = () => { readEditor(); $('#flow').value = ''; renderEditor(); render() };
+const heldMap = () => { const m = {}; H.forEach(h => { if (h.c && h.s > 0) m[h.c] = (m[h.c] || 0) + h.s }); return m };
+let TR = store.get('trades', {lots: {}, closed: []});
+const isSat = c => !isFix(c) && !(S && S.params && ((S.params.defs || {})[c] != null || (S.params.gold_alt || {})[c] != null || (S.params.other || {})[c] != null));
+function logTrades(old, now) {   // 依持股變化推算交易（以資料日收盤價估算成交價，含手續費與證交稅）
+  if (!S) return;
+  const codes = new Set([...Object.keys(old), ...Object.keys(now)]);
+  codes.forEach(c => {
+    if (!isSat(c)) return;
+    const d = (now[c] || 0) - (old[c] || 0), p = S.prices[c];
+    if (!d || !p) return;
+    const L = TR.lots[c] || {sh: 0, cost: 0, d: S.date};
+    if (d > 0) { L.sh += d; L.cost += d * p * 1.000399; if (!TR.lots[c]) L.d = S.date; TR.lots[c] = L }
+    else if (L.sh > 0) {
+      const q = Math.min(-d, L.sh), avg = L.cost / L.sh, cost = q * avg, pro = q * p * (1 - 0.000399 - 0.003);
+      TR.closed.push({c, n: (S.names || {})[c] || c, din: L.d, dout: S.date, pnl: Math.round(pro - cost), ret: pro / cost - 1});
+      L.sh -= q; L.cost -= cost; if (L.sh <= 1e-9) delete TR.lots[c];
+    }
+  });
+  store.set('trades', TR);
+}
+function seedLots() {   // 第一次使用：現有衛星持股以今天收盤價當成本
+  let ch = false;
+  Object.entries(heldMap()).forEach(([c, n]) => { if (isSat(c) && !TR.lots[c] && S.prices[c]) { TR.lots[c] = {sh: n, cost: n * S.prices[c], d: S.date, init: true}; ch = true } });
+  if (ch) store.set('trades', TR);
+}
+$('#save').onclick = () => { const old = heldMap(); readEditor(); logTrades(old, heldMap()); $('#flow').value = ''; renderEditor(); render() };
 $('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, PERF}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
 $('#impfile').onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -318,6 +344,7 @@ function render() {
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   try { snap(total); renderPerf() } catch (e) { console.log(e) }
   try { renderShadow() } catch (e) { console.log(e) }
+  try { seedLots(); renderStats() } catch (e) { console.log(e) }
   $('#nb-sig').textContent = (sells.length + buys.length) || '';
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
 }
@@ -333,6 +360,25 @@ function snap(total) {
   x.v = Math.round(total); if (b) x.b = b;
   if (PENDFLOW) { x.f = (x.f || 0) + PENDFLOW; PENDFLOW = 0 }
   store.set('perf', PERF);
+}
+function renderStats() {
+  const A = PERF.filter(p => p.v > 0), pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  let h = '';
+  if (A.length >= 2) {
+    const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
+    const mdd = arr => { let pk = -Infinity, m = 0; arr.forEach(x => { if (x == null) return; pk = Math.max(pk, x); m = Math.min(m, x / pk - 1) }); return m };
+    const k = A.findIndex(p => p.b), my = mdd(s), bm = k >= 0 ? mdd(A.slice(k).map(p => p.b || null)) : null;
+    const cur = s[s.length - 1] / Math.max(...s) - 1;
+    h += `<div class="row"><div class="l"><b>最大回撤</b><div class="why">從 ${A[0].d} 起，帳戶從最高點最多跌了多少｜目前離最高點 ${pc(cur)}</div></div><div class="r"><div class="big">${pc(my)}</div><div class="small">${bm == null ? '' : `0050 ${pc(bm)}`}</div></div></div>`;
+  }
+  const C = TR.closed, w = C.filter(t => t.ret > 0), l = C.filter(t => t.ret <= 0), avg = a => a.reduce((x, t) => x + t.ret, 0) / a.length;
+  if (C.length) {
+    const aw = w.length ? avg(w) : 0, al = l.length ? avg(l) : 0;
+    h += `<div class="row"><div class="l"><b>已實現交易（衛星股）</b><div class="why">${C.length} 筆｜賺 ${w.length} 筆、賠 ${l.length} 筆｜合計 ${fmt(C.reduce((x, t) => x + t.pnl, 0))} 元</div></div><div class="r"><div class="big">勝率 ${(w.length / C.length * 100).toFixed(0)}%</div><div class="small">平均賺 ${w.length ? pc(aw) : '—'}｜平均賠 ${l.length ? pc(al) : '—'}｜賺賠比 ${w.length && l.length ? (aw / -al).toFixed(2) : '—'}</div></div></div>`;
+    h += `<details><summary class="note">最近的交易</summary>${C.slice(-10).reverse().map(t => `<div class="row"><div class="l"><b>${t.n}</b><span class="code">${t.c}</span><div class="why">${t.din} → ${t.dout}</div></div><div class="r"><div class="big">${pc(t.ret)}</div><div class="small">${fmt(t.pnl)} 元</div></div></div>`).join('')}</details>`;
+  } else h += `<p class="note">還沒有已賣出的衛星股交易。之後每次在「持股與現金」更新股數並儲存，App 會自動記下買賣，賣出後就會出現勝率與賺賠比。</p>`;
+  h += `<p class="note">回測參考（2006–2026，1,250 筆）：勝率約 44%、平均賺 +18.6%、平均賠 −8.2%、賺賠比約 2.3。勝率不到一半是正常的，靠賺的時候賺比較多。成交價以資料日收盤價估算，含手續費與證交稅；開始使用時已持有的股票，成本以當天收盤價計。</p>`;
+  $('#stats').innerHTML = h;
 }
 function renderShadow() {
   const PP = S.paper, el = $('#shadow');
