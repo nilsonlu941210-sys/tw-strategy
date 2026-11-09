@@ -112,7 +112,8 @@ def signals(st, day=None):
     sc = pd.Series(np.nan, index=adj.columns)
     zz = (zrow(rnh[E]).fillna(0) + zrow(h250[E]).fillna(0)) / 2
     sc[m] = zrow(zz[m[E].values]) if m.any() else np.nan
-    SIG = E & (rnh > 0) & brk; HOLD = E & (rnh > HOLD_RNH) & (h250 >= HOLD_H250)
+    HOLD = E & (rnh > HOLD_RNH) & (h250 >= HOLD_H250)
+    SIG = E & (rnh > 0) & brk & (h250 >= HOLD_H250)   # 2026-11-09 使用者決定（v76）：買進時就須符合續抱條件（離一年最高收盤 15% 內），避免買了隔天就賣
     SIG[list(EXCLUDE & set(SIG.index))] = False
     return dict(date=d, SIG=SIG, HOLD=HOLD, score=sc, rnh=rnh, h250=h250, E=E)
 
