@@ -97,6 +97,10 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   <details><summary>備份／還原持股</summary>
     <div class="btns"><button class="ghost" id="exp">複製備份文字</button><button class="ghost" id="imp">貼上還原</button></div>
   </details>
+  <details><summary>匯入舊的績效紀錄</summary>
+    <p class="note">選擇「績效對標」App 匯出的 JSON（每天的資產、存提款）。匯入後會標成「主觀操作期」，跟之後照策略操作的「策略期」分開顯示；比較對象用含息的 0050。</p>
+    <input type="file" id="impfile" accept=".json,application/json"><p class="note" id="impmsg"></p>
+  </details>
 </section>
 </div>
 <div class="pane" id="p-dt">
@@ -159,6 +163,22 @@ $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if 
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
 $('#save').onclick = () => { readEditor(); $('#flow').value = ''; renderEditor(); render() };
 $('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, PERF}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#impfile').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const arr = JSON.parse(await file.text()), bench = await (await fetch('bench_0050.json?t=' + Date.now(), {cache: 'no-store'})).json();
+    let n = 0;
+    arr.forEach(r => {
+      if (!r.date || !(r.assets > 0)) return;
+      let x = PERF.find(p => p.d === r.date);
+      if (x && !x.imp) x.va = x.v;
+      if (!x) { x = {d: r.date}; PERF.push(x) }
+      x.v = Math.round(r.assets); x.f = r.flow || 0; x.imp = true; if (bench[r.date]) x.b = bench[r.date]; n++;
+    });
+    PERF.sort((a, c) => a.d < c.d ? -1 : 1); store.set('perf', PERF); renderPerf();
+    $('#impmsg').textContent = `已匯入 ${n} 天（${arr[0].date}～${arr[arr.length - 1].date}）。`;
+  } catch (err) { $('#impmsg').textContent = '匯入失敗：檔案格式不對'; console.log(err) }
+};
 $('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; if (o.PERF) { PERF = o.PERF; store.set('perf', PERF) } store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
 
 function row(name, code, why, big, small) {
@@ -330,7 +350,7 @@ function renderShadow() {
 function renderPerf() {
   const A = PERF.filter(p => p.v > 0), el = $('#perf');
   if (A.length < 2) { el.innerHTML = `<p class="note">${A.length ? `已從 ${A[0].d} 開始記錄。` : ''}之後每天收盤後打開 App，就會累積你的績效並和 0050 比較。</p>`; return }
-  const s = [1]; for (let i = 1; i < A.length; i++) s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / A[i - 1].v);
+  const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
   const k = A.findIndex(p => p.b), last = A.length - 1;
   const pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
   const since = base => { const r = s[last] / s[base] - 1, hasB = A[base].b && A[last].b, b = hasB ? A[last].b / A[base].b - 1 : null;
@@ -338,7 +358,10 @@ function renderPerf() {
   const y0 = A[last].d.slice(0, 4), m0 = A[last].d.slice(0, 7);
   const lastBefore = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
   const b0 = k < 0 ? 0 : k;
-  let h = since(b0).replace('__L__', '開始記錄以來') + since(lastBefore(y0 + '-01-01')).replace('__L__', '今年以來') + since(lastBefore(m0 + '-01')).replace('__L__', '本月');
+  const li = A.reduce((m, p, j) => p.imp ? j : m, -1);
+  const seg = (a, z, lab) => { const r = s[z] / s[a] - 1, b = A[a].b && A[z].b ? A[z].b / A[a].b - 1 : null;
+    return `<div class="row"><div class="l"><b>${lab}</b><div class="why">${A[a].d}～${A[z].d}</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
+  let h = (li >= 0 ? seg(0, li, '主觀操作期') + (last > li ? seg(li, last, '策略期') : '') : '') + since(b0).replace('__L__', '開始記錄以來') + since(lastBefore(y0 + '-01-01')).replace('__L__', '今年以來') + since(lastBefore(m0 + '-01')).replace('__L__', '本月');
   if (k >= 0 && last - k >= 2) {
     const xs = A.slice(k), sv = xs.map((p, i) => s[k + i] / s[k] - 1), bv = xs.map(p => p.b ? p.b / A[k].b - 1 : null);
     const all = sv.concat(bv.filter(x => x != null)), lo = Math.min(0, ...all), hi = Math.max(0, ...all), W = 320, Hh = 120, X = i => 8 + i * (W - 16) / (xs.length - 1), Y = v => Hh - 16 - (v - lo) / ((hi - lo) || 1) * (Hh - 32);
