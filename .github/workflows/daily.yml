@@ -54,6 +54,11 @@ jobs:
           pip install yfinance pandas
           python scripts/foreign_px.py --signals site/signals.json 2>&1 | tee -a data/last_run.log
 
+      - name: 信用利差（FRED，失敗不影響其他）
+        continue-on-error: true
+        run: |
+          python scripts/credit.py --signals site/signals.json 2>&1 | tee -a data/last_run.log
+
       - name: 明日當沖觀察名單（永豐 1 分 K，失敗不影響其他）
         continue-on-error: true
         env:

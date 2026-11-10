@@ -62,6 +62,7 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="pane" id="p-home">
 <section class="card" id="summary"></section>
 <section class="card" id="perfcard"><h2>我的績效 vs 0050</h2><div id="perf"></div></section>
+<section class="card" id="creditcard"><h2>信用利差 <span class="tag t-warn">市場溫度計</span></h2><div id="credit"></div></section>
 <section class="card" id="statcard"><h2>風險與交易統計</h2><div id="stats"></div></section>
 <section class="card" id="shadowcard"><h2>影子版本追蹤 <span class="tag t-warn">紙上測試</span></h2><div id="shadow"></div></section>
 <footer>
@@ -344,6 +345,7 @@ function render() {
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
   try { snap(total); renderPerf() } catch (e) { console.log(e) }
   try { renderShadow() } catch (e) { console.log(e) }
+  try { renderCredit() } catch (e) { console.log(e) }
   try { seedLots(); renderStats() } catch (e) { console.log(e) }
   $('#nb-sig').textContent = (sells.length + buys.length) || '';
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
@@ -379,6 +381,18 @@ function renderStats() {
   } else h += `<p class="note">還沒有已賣出的衛星股交易。之後每次在「持股與現金」更新股數並儲存，App 會自動記下買賣，賣出後就會出現勝率與賺賠比。</p>`;
   h += `<p class="note">回測參考（2006–2026，1,250 筆）：勝率約 44%、平均賺 +18.6%、平均賠 −8.2%、賺賠比約 2.3。勝率不到一半是正常的，靠賺的時候賺比較多。成交價以資料日收盤價估算，含手續費與證交稅；開始使用時已持有的股票，成本以當天收盤價計。</p>`;
   $('#stats').innerHTML = h;
+}
+function renderCredit() {
+  const C = S.credit, el = $('#credit');
+  if (!C) { $('#creditcard').style.display = 'none'; return }
+  const sg = x => (x >= 0 ? '+' : '') + x.toFixed(2);
+  const spark = (arr, col) => { const v = arr.map(x => x[1]), lo = Math.min(...v), hi = Math.max(...v), W = 320, H = 60, X = i => 4 + i * (W - 8) / (v.length - 1), Y = y => H - 6 - (y - lo) / ((hi - lo) || 1) * (H - 12);
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%"><polyline fill="none" stroke="${col}" stroke-width="2" points="${v.map((y, i) => X(i) + ',' + Y(y)).join(' ')}"/></svg><div class="small" style="display:flex;justify-content:space-between;font-size:11px;white-space:nowrap"><span>${arr[0][0].slice(2)}</span><span>低 ${lo.toFixed(2)}%｜高 ${hi.toFixed(2)}%</span><span>${arr[arr.length - 1][0].slice(2)}</span></div>` };
+  el.innerHTML = `<div class="row"><div class="l"><b>公司債利差（BAA − 10 年公債）</b><div class="why">${C.month} 月平均｜比 6 個月前 ${sg(C.chg6)} 個百分點${C.lit ? '｜<b>擴大 ≥0.5：亮燈</b>' : ''}</div></div><div class="r"><div class="big">${C.spread.toFixed(2)}%</div><div class="small">${C.lit ? '市場緊張' : '未亮燈'}</div></div></div>
+  ${spark(C.hist, '#5b6')}
+  <div class="row" style="margin-top:8px"><div class="l"><b>高收益債利差（每日）</b><div class="why">${C.hy_date}｜半年前 ${C.hy_6m.toFixed(2)}%｜平常約 3–5%，2020 年疫情約 11%，2008 年約 20%</div></div><div class="r"><div class="big">${C.hy.toFixed(2)}%</div></div></div>
+  ${spark(C.hy_hist, '#c84')}
+  <p class="note">只用來看債券市場有多緊張，不是買賣訊號：回測（v79）亮燈就賣反而少賺；歷史上亮燈後那段時間股市平均報酬反而較高。月資料每月初更新一次。</p>`;
 }
 function renderShadow() {
   const PP = S.paper, el = $('#shadow');
