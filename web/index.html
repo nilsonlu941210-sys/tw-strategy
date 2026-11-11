@@ -171,11 +171,15 @@ function logTrades(old, now) {   // 依持股變化推算交易（以資料日�
     if (d > 0) { L.sh += d; L.cost += d * p * 1.000399; if (!TR.lots[c]) L.d = S.date; TR.lots[c] = L }
     else if (L.sh > 0) {
       const q = Math.min(-d, L.sh), avg = L.cost / L.sh, cost = q * avg, pro = q * p * (1 - 0.000399 - 0.003);
-      TR.closed.push({c, n: (S.names || {})[c] || c, din: L.d, dout: S.date, pnl: Math.round(pro - cost), ret: pro / cost - 1});
+      const trim = L.sh - q > 1e-9;   // 只賣一部分＝減碼（調整比例），不算一筆完整交易
+      TR.closed.push({c, n: (S.names || {})[c] || c, din: L.d, dout: S.date, pnl: Math.round(pro - cost), ret: pro / cost - 1, trim});
       L.sh -= q; L.cost -= cost; if (L.sh <= 1e-9) delete TR.lots[c];
     }
   });
   store.set('trades', TR);
+}
+function fixTrims() {   // 舊紀錄：賣出後還有持股的，標成減碼
+  let ch = false; TR.closed.forEach(t => { if (t.trim === undefined) { t.trim = !!TR.lots[t.c]; ch = true } }); if (ch) store.set('trades', TR);
 }
 function seedLots() {   // 第一次使用：現有衛星持股以今天收盤價當成本
   let ch = false;
@@ -340,7 +344,7 @@ function render() {
   try { snap(total); renderPerf() } catch (e) { console.log(e) }
   try { renderShadow() } catch (e) { console.log(e) }
   try { renderCredit() } catch (e) { console.log(e) }
-  try { seedLots(); renderStats() } catch (e) { console.log(e) }
+  try { seedLots(); fixTrims(); renderStats() } catch (e) { console.log(e) }
   $('#nb-sig').textContent = (sells.length + buys.length) || '';
   collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
 }
@@ -367,12 +371,15 @@ function renderStats() {
     const cur = s[s.length - 1] / Math.max(...s) - 1;
     h += `<div class="row"><div class="l"><b>最大回撤</b><div class="why">從 ${A[0].d} 起，帳戶從最高點最多跌了多少｜目前離最高點 ${pc(cur)}</div></div><div class="r"><div class="big">${pc(my)}</div><div class="small">${bm == null ? '' : `0050 ${pc(bm)}`}</div></div></div>`;
   }
-  const C = TR.closed, w = C.filter(t => t.ret > 0), l = C.filter(t => t.ret <= 0), avg = a => a.reduce((x, t) => x + t.ret, 0) / a.length;
+  const TRM = TR.closed.filter(t => t.trim), C = TR.closed.filter(t => !t.trim), w = C.filter(t => t.ret > 0), l = C.filter(t => t.ret <= 0), avg = a => a.reduce((x, t) => x + t.ret, 0) / a.length;
   if (C.length) {
     const aw = w.length ? avg(w) : 0, al = l.length ? avg(l) : 0;
-    h += `<div class="row"><div class="l"><b>已實現交易（衛星股）</b><div class="why">${C.length} 筆｜賺 ${w.length} 筆、賠 ${l.length} 筆｜合計 ${fmt(C.reduce((x, t) => x + t.pnl, 0))} 元</div></div><div class="r"><div class="big">勝率 ${(w.length / C.length * 100).toFixed(0)}%</div><div class="small">平均賺 ${w.length ? pc(aw) : '—'}｜平均賠 ${l.length ? pc(al) : '—'}｜賺賠比 ${w.length && l.length ? (aw / -al).toFixed(2) : '—'}</div></div></div>`;
+    h += `<div style="margin-top:10px"><b>已完成交易（衛星股，全部賣出才算一筆）</b>
+      <div class="kpi" style="margin-top:6px"><div><div class="k">勝率</div><div class="v">${(w.length / C.length * 100).toFixed(0)}%</div></div><div><div class="k">賺賠比</div><div class="v">${w.length && l.length ? (aw / -al).toFixed(2) : '—'}</div></div><div><div class="k">合計</div><div class="v">${fmt(C.reduce((x, t) => x + t.pnl, 0))}</div></div></div>
+      <div class="why">${C.length} 筆（賺 ${w.length}、賠 ${l.length}）｜平均賺 ${w.length ? pc(aw) : '—'}｜平均賠 ${l.length ? pc(al) : '—'}</div></div>`;
     h += `<details><summary class="note">最近的交易</summary>${C.slice(-10).reverse().map(t => `<div class="row"><div class="l"><b>${t.n}</b><span class="code">${t.c}</span><div class="why">${t.din} → ${t.dout}</div></div><div class="r"><div class="big">${pc(t.ret)}</div><div class="small">${fmt(t.pnl)} 元</div></div></div>`).join('')}</details>`;
-  } else h += `<p class="note">還沒有已賣出的衛星股交易。之後每次在「持股與現金」更新股數並儲存，App 會自動記下買賣，賣出後就會出現勝率與賺賠比。</p>`;
+  } else h += `<p class="note">還沒有完成的衛星股交易（全部賣出才算一筆）。之後每次在「持股與現金」更新股數並儲存，App 會自動記下買賣。</p>`;
+  if (TRM.length) h += `<p class="note">另有 ${TRM.length} 次減碼（只賣一部分，例如調整比例），合計 ${fmt(TRM.reduce((x, t) => x + t.pnl, 0))} 元，不算進勝率。</p>`;
   h += `<p class="note">回測參考（2006–2026，1,250 筆）：勝率約 44%、平均賺 +18.6%、平均賠 −8.2%、賺賠比約 2.3。勝率不到一半是正常的，靠賺的時候賺比較多。成交價以資料日收盤價估算，含手續費與證交稅；開始使用時已持有的股票，成本以當天收盤價計。</p>`;
   $('#stats').innerHTML = h;
 }
