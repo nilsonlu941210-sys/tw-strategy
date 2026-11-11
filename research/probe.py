@@ -1,10 +1,20 @@
-# 探測證交所／櫃買「產業價值鏈資訊平台」能否從 GitHub 抓取，存原始 HTML 供解析
-import requests, re, os
+# 下載證交所／櫃買「產業價值鏈資訊平台」全部產業鏈的子產業與公司對照（目前版本）
+import requests, re, os, time, html, csv
 H = {'User-Agent': 'Mozilla/5.0'}
 os.makedirs('pr', exist_ok=True)
-for name, url in (('index', 'https://ic.tpex.org.tw/index.php'), ('d000', 'https://ic.tpex.org.tw/introduce.php?ic=D000'), ('stk2327', 'https://ic.tpex.org.tw/company_chain.php?stk_code=2327')):
+idx = requests.get('https://ic.tpex.org.tw/index.php', headers=H, timeout=60).text
+codes = sorted(set(re.findall(r'ic=([A-Z0-9]{4})', idx)))
+rows = []
+for ic in codes:
     try:
-        r = requests.get(url, headers=H, timeout=60); r.encoding = r.apparent_encoding
-        open(f'pr/{name}.html', 'w').write(r.text); print(name, r.status_code, len(r.text), r.text[:200].replace('\n', ' '), flush=True)
-        if name == 'index': print('ic codes', sorted(set(re.findall(r'ic=([A-Z0-9]+)', r.text)))[:80])
-    except Exception as e: print(name, '失敗', e)
+        t = requests.get(f'https://ic.tpex.org.tw/introduce.php?ic={ic}', headers=H, timeout=60).text
+    except Exception as e: print(ic, '失敗', e); continue
+    chain = (re.findall(r'<title>\s*產業價值鏈資訊平台\s*&gt;\s*(.*?)產業鏈簡介', t) or re.findall(r'產業價值鏈資訊平台 > (.*?)產業鏈簡介', t) or [ic])[0].strip()
+    names = {k: html.unescape(re.sub(r'<[^>]+>', '', v)).replace('\xa0', ' ').strip() for k, v in re.findall(r'id="sc_link_(\w+)"[^>]*>(.*?)</div>', t, flags=re.S)}
+    for sid, body in re.findall(r'id="sc_company_(\w+)"(.*?)</table>', t, flags=re.S):
+        nm = re.sub(r'^\W*', '', names.get(sid, sid)); nm = re.sub(r'\s*\(\d+家\)\s*$', '', nm)
+        for s in sorted(set(re.findall(r'stk_code=(\d{4})', body))): rows.append((ic, chain, sid, nm, s))
+    print(ic, chain, len(names), '子產業', flush=True); time.sleep(1)
+with open('pr/ic_chain.csv', 'w', newline='') as f:
+    w = csv.writer(f); w.writerow(['ic', 'chain', 'sub_id', 'sub_name', 'stock_id']); w.writerows(rows)
+print('總列數', len(rows), '公司數', len({r[4] for r in rows}))
