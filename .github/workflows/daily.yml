@@ -59,7 +59,8 @@ jobs:
         run: |
           python scripts/credit.py --signals site/signals.json 2>&1 | tee -a data/last_run.log
 
-      - name: 明日當沖觀察名單（永豐 1 分 K，失敗不影響其他）
+      - name: 明日當沖觀察名單（2026-11-11 使用者要求停用）
+        if: false
         continue-on-error: true
         env:
           SJ_API_KEY: ${{ secrets.SJ_API_KEY }}

@@ -45,7 +45,7 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .tile .big{font-weight:700;font-size:17px;font-variant-numeric:tabular-nums;margin-top:auto}.tile .small{color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
 .tile .why{color:var(--mute);font-size:12px;line-height:1.35;margin-top:4px;overflow-wrap:anywhere}.tile .dtl{font-size:12px;grid-template-columns:auto 1fr}
 #sells .tile{border-top-color:var(--sell)}#buys .tile{border-top-color:var(--buy)}#core .tile,#defs .tile{border-top-color:var(--core)}#holds .tile{border-top-color:var(--ink)}
-.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:9}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:9}
 .tabs button{background:transparent;color:var(--mute);padding:6px 2px;border-radius:10px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
 .tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 .tabs button.on{color:var(--ink);font-weight:700;background:var(--bg)}
@@ -105,16 +105,10 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   </details>
 </section>
 </div>
-<div class="pane" id="p-dt">
-<section class="card" id="dtcard"><h2>明日當沖觀察 <span class="tag t-warn">只供參考</span></h2>
-  <p class="note" id="dtrule"></p>
-  <div id="dtlist" class="grid"></div>
-  <p class="note">「偏多／偏空」只是依均線與收盤位置整理的參考，<b>沒有經過回測驗證</b>（機械式的突破、做空規則回測都沒通過）。壓力／支撐取自昨日高低、近 5 日高低與 60 分 K 波段高低點。打平檔數已含 2.8 折手續費與當沖稅，未含買賣價差。</p>
-</section>
-</div>
+
 
 </main>
-<nav class="tabs"><button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>總覽<span class="nb" id="nb-home"></span></button><button data-tab="sig"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>買賣訊號<span class="nb" id="nb-sig"></span></button><button data-tab="hold"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4h8v2"/></svg>持股與現金<span class="nb" id="nb-hold"></span></button><button data-tab="dt"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>當沖<span class="nb" id="nb-dt"></span></button></nav>
+<nav class="tabs"><button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>總覽<span class="nb" id="nb-home"></span></button><button data-tab="sig"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>買賣訊號<span class="nb" id="nb-sig"></span></button><button data-tab="hold"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4h8v2"/></svg>持股與現金<span class="nb" id="nb-hold"></span></button></nav>
 <script>
 const $ = s => document.querySelector(s);
 const fmt = (x, d = 0) => x == null || isNaN(x) ? '—' : Number(x).toLocaleString('zh-TW', {maximumFractionDigits: d, minimumFractionDigits: d});
@@ -217,7 +211,7 @@ function showTab(k) {
   store.set('tab', k); window.scrollTo(0, 0);
 }
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
-showTab(store.get('tab', 'home'));
+showTab(['home', 'sig', 'hold'].includes(store.get('tab', 'home')) ? store.get('tab', 'home') : 'home');
 
 function render() {
   if (!S) return;
@@ -451,7 +445,7 @@ function renderDT() {
     <span class="k">型態</span><span>${r.trend}｜收在當日${r.pos > 0.7 ? '高檔' : r.pos < 0.3 ? '低檔' : '中間'}｜5 日 ${pct(r.r5)}</span>
     <span class="k">當沖</span><span>${r.short_ok || '—'}｜每檔 ${r.tick} 元，賺 ${r.ticks} 檔才打平</span></div></div>`));
 }
-fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; try { renderDT() } catch (e) { console.log(e) } render() })
+fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; render() })
   .catch(() => { $('#sub').textContent = '讀取資料失敗，請稍後重新整理' });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
