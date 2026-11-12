@@ -275,9 +275,10 @@ function render() {
   let short = false;
   $('#buys').innerHTML = (buys.length ? buys.map(b => {
     let sh = b.price ? Math.floor(amt / b.price) : 0, note = '';
+    const full = sh, fullNote = `原本應買 ${fmt(full)} 股（約 ${fmt(full * (b.price || 0))} 元，總資產 ${(S.params.sat_w * 100).toFixed(1)}%）`;
     const afford = b.price ? Math.floor(Math.max(0, avail) / (b.price * 1.0004)) : 0;
-    if (total && short) { sh = 0; note = '（現金不足，先跳過）'; }
-    else if (total && afford < sh) { sh = afford; short = true; note = sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'; }
+    if (total && short) { sh = 0; note = `（現金不足，先跳過）${fullNote}`; }
+    else if (total && afford < sh) { sh = afford; short = true; note = `${sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'}${fullNote}，還差約 ${fmt((full - sh) * (b.price || 0))} 元`; }
     avail -= sh * (b.price || 0) * 1.0004;
     return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}${b.stk >= 2 ? `（連續 ${b.stk} 個月）` : ''}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
   }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
