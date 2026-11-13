@@ -84,6 +84,20 @@ try:
     print('  紙上追蹤：', {k: (v['nav'][-1], list(v['hold'])) for k, v in P0.items()})
 except Exception as e:
     print('  紙上追蹤失敗：', e); stk = pd.Series(dtype=float)
+# ---- 示範帳戶（50 萬、完整配置，只在測試版 App 顯示）----
+demo_out = None
+try:
+    DM = st.setdefault('demo', dict(hold={}, cash=float(DEMO_START), start=str(d.date())))
+    bj = st['adj'][BENCH].ffill().iloc[-1] if BENCH in st['adj'].columns else np.nan
+    demo_step(DM, d, st['close'].ffill().iloc[-1], s['SIG'], s['HOLD'], s['score'], set(st.get('hard_events', {})), bj)
+    pxl = st['close'].ffill().iloc[-1]; tv = DM['nav'][-1][1]
+    demo_out = dict(start=DM['start'], start_cash=DEMO_START, nav=DM['nav'][-260:], cash=round(DM['cash']), n=DM['n'],
+                    hold=[dict(c=c, n=nm(c) or DEF_NAMES.get(c, GOLD_ALT.get(c, '')), sh=int(q), price=f(pxl.get(c), 2), val=round(q * float(pxl.get(c, 0))), w=round(q * float(pxl.get(c, 0)) / tv, 4), fix=c in DEMO_FIX) for c, q in DM['hold'].items()],
+                    pend_buy=[dict(c=c, n=nm(c)) for c in DM.get('pend_buy', [])], pend_sell=[dict(c=c, n=nm(c), why=DM.get('sell_why', {}).get(c, '')) for c in DM.get('pend_sell', [])],
+                    log=[dict(d=a, c=b, n=nm(b) or DEF_NAMES.get(b, GOLD_ALT.get(b, '')), act=x, sh=y, p=z, why=w) for a, b, x, y, z, w in DM['log'][-80:]])
+    print('  示範帳戶：', DM['nav'][-1], {c: int(q) for c, q in DM['hold'].items()}, '現金', round(DM['cash']))
+except Exception as e:
+    print('  示範帳戶失敗：', e)
 hist = st.get('history', [])
 today_rec = dict(date=str(d.date()), buys=[dict(c=c, n=nm(c)) for c in buys.index[:12]])
 hist = [h for h in hist if h['date'] != today_rec['date']] + [today_rec]; st['history'] = hist[-30:]
@@ -94,6 +108,7 @@ out = dict(
     buys=[dict(c=c, n=nm(c), price=f(px[c], 2), rnh=f(s['rnh'][c]), h250=f(s['h250'][c]), score=f(buys[c], 3), stk=int(stk.get(c, 0) or 0)) for c in buys.index],
     paper={k: dict(start=v['start'], nav=v['nav'][-260:], hold=[dict(c=c, n=nm(c)) for c in v['hold']], pend_buy=[dict(c=c, n=nm(c)) for c in v.get('pend_buy', [])], pend_sell=[dict(c=c, n=nm(c)) for c in v.get('pend_sell', [])]) for k, v in st.get('paper', {}).items()},
     shadow_rule=dict(n=SHADOW_N, b=SHADOW_B),
+    demo=demo_out,
     pool=pool_info,
     auto_nobuy=st.get('hard_events', {}),
     bench=(dict(c=BENCH, adj=f(st['adj'][BENCH].ffill().iloc[-1], 6)) if BENCH in st['adj'].columns and st['adj'][BENCH].notna().any() else None),

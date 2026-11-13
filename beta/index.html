@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>台股訊號 測試版</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="訊號測試版">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--mute:#5f6b7a;--line:#e3e7ec;--buy:#c0392b;--buy-bg:#fdeeec;--sell:#1e7a46;--sell-bg:#e8f5ee;--core:#2f5fb3;--core-bg:#eaf1fc;--warn:#9a6700;--warn-bg:#fff6dc;--btn:#14181f;--btn-ink:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--ink:#e8ecf1;--mute:#97a3b3;--line:#2a313b;--buy:#ff7b6b;--buy-bg:#3a1f1c;--sell:#5fd394;--sell-bg:#16301f;--core:#86aef5;--core-bg:#1a2740;--warn:#f2c14e;--warn-bg:#352b12;--btn:#e8ecf1;--btn-ink:#0e1116}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 16px 48px}
+header h1{font-size:20px;margin:4px 0 2px}header .sub{color:var(--mute);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0}
+.card h2{font-size:16px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;font-weight:600}
+.t-buy{background:var(--buy-bg);color:var(--buy)}.t-sell{background:var(--sell-bg);color:var(--sell)}.t-core{background:var(--core-bg);color:var(--core)}.t-warn{background:var(--warn-bg);color:var(--warn)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}
+.row .l b{font-size:16px}.row .l .code{color:var(--mute);font-size:13px;margin-left:6px}.row .l .why{color:var(--mute);font-size:13px}
+.row .r{text-align:right;white-space:nowrap}.row .r .big{font-weight:700;font-variant-numeric:tabular-nums}.row .r .small{color:var(--mute);font-size:13px}
+.empty{color:var(--mute);font-size:14px;padding:4px 0}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kpi div{background:var(--bg);border-radius:10px;padding:8px 10px}.kpi .k{color:var(--mute);font-size:12px}.kpi .v{font-weight:700;font-variant-numeric:tabular-nums}
+details summary{cursor:pointer;color:var(--mute);font-size:14px;margin-top:6px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.hrow{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin:6px 0;align-items:center}
+button{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(--btn);color:var(--btn-ink);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}button.x{padding:6px 0;background:transparent;color:var(--mute);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.note{color:var(--mute);font-size:13px;margin:6px 0 0}
+.danger{background:var(--buy-bg);color:var(--buy);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700;display:inline-block;margin-top:4px}
+.dtl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px;margin-top:4px}.dtl .k{color:var(--mute)}
+.alert{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+footer{color:var(--mute);font-size:12px;margin-top:24px;line-height:1.6}
+main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.pane{display:none}.pane.on{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid>:not(.tile){grid-column:1/-1}
+.grid .more{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{aspect-ratio:1/1;display:flex;flex-direction:column;gap:2px;background:var(--bg);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:12px;padding:10px 11px;min-width:0}
+.tile .tn b{font-size:16px;line-height:1.25;display:block;overflow-wrap:anywhere}.tile .tn .code{color:var(--mute);font-size:12px}
+.tile .big{font-weight:700;font-size:17px;font-variant-numeric:tabular-nums;margin-top:auto}.tile .small{color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
+.tile .why{color:var(--mute);font-size:12px;line-height:1.35;margin-top:4px;overflow-wrap:anywhere}.tile .dtl{font-size:12px;grid-template-columns:auto 1fr}
+#sells .tile{border-top-color:var(--sell)}#buys .tile{border-top-color:var(--buy)}#core .tile,#defs .tile{border-top-color:var(--core)}#holds .tile{border-top-color:var(--ink)}
+.about p,.about li{font-size:14px}.about ul,.about ol{padding-left:20px;margin:6px 0}.about li{margin:4px 0}
+.about ul.warn li{color:var(--ink)}.about ul.warn li b{color:var(--buy)}
+.tb{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0;font-variant-numeric:tabular-nums}.tb th,.tb td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}.tb th{color:var(--mute);font-weight:600}.tb.yr td,.tb.yr th{text-align:right}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:9}
+.tabs button{background:transparent;color:var(--mute);padding:6px 2px;border-radius:10px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tabs button.on{color:var(--ink);font-weight:700;background:var(--bg)}
+.tabs .nb{position:absolute;top:2px;right:calc(50% - 22px);background:var(--buy);color:#fff;border-radius:99px;font-size:11px;line-height:16px;min-width:16px;padding:0 4px;font-weight:700}.tabs .nb:empty{display:none}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>台股每日訊號 <span class="tag t-warn">測試版</span></h1>
+  <div class="sub" id="sub">載入中…</div>
+</header>
+
+<div class="pane" id="p-home">
+<section class="card" id="democard" style="border-color:var(--warn)"><h2>示範帳戶 <span class="tag t-warn">50 萬・每天自動照規則操作</span></h2><div id="demo"></div></section>
+<section class="card" id="summary"></section>
+<section class="card" id="perfcard"><h2>我的績效 vs 0050</h2><div id="perf"></div></section>
+<section class="card" id="creditcard"><h2>信用利差 <span class="tag t-warn">市場溫度計</span></h2><div id="credit"></div></section>
+<section class="card" id="statcard"><h2>風險與交易統計</h2><div id="stats"></div></section>
+<section class="card" id="shadowcard"><h2>影子版本追蹤 <span class="tag t-warn">紙上測試</span></h2><div id="shadow"></div></section>
+<footer>
+  規則：500 檔股票池（每季依成交金額重排）中，營收創 12 個月新高、且收盤突破前 60 日最高收盤者買進；營收比前 12 個月最高低 20% 以上、股價離一年高點超過 15%、或離開股票池就賣出。衛星最多 7 檔、每檔約 6.4%（合計 45%）；00881 佔 22.5%、短債 00719B 13.5%、黃金 9%（GLDM 複委託＋00635U 合計），每 60 個交易日調回；另留 10% 自由資金。<br>
+  訊號在收盤後產生，隔天盤中執行，價格以接近當日均價為準；開盤就鎖漲停買不到的跳過。這是個人研究工具，不是投資建議。
+</footer>
+</div>
+<div class="pane" id="p-sig">
+<section class="card"><h2><span class="tag t-sell">賣出</span>明天要賣</h2><div id="sells" class="grid"></div></section>
+<section class="card"><h2><span class="tag t-buy">買進</span>明天要買</h2><div id="buys" class="grid"></div></section>
+<section class="card"><h2>近 30 天的買進訊號</h2><div id="hist"></div></section>
+</div>
+<div class="pane" id="p-hold">
+<section class="card"><h2><span class="tag t-core">核心</span><span id="coreTitle">00881</span></h2><div id="core" class="grid"></div></section>
+<section class="card" id="defcard"><h2><span class="tag t-core">防守</span>短債＋黃金</h2><div id="defs" class="grid"></div></section>
+<section class="card"><h2>續抱</h2><div id="holds" class="grid"></div></section>
+
+<section class="card">
+  <h2>我的持股與現金</h2>
+  <label class="note" for="cash">證券戶可用現金（元）</label>
+  <input id="cash" type="number" inputmode="numeric" placeholder="例如 50000">
+  <label class="note" for="flow" style="display:block;margin-top:8px">這次有存入或提出錢嗎？（存入填正數、提出填負數，沒有就留空；用來算績效，不會算成賺賠）</label>
+  <input id="flow" type="number" inputmode="numeric" placeholder="例如 10000 或 -5000">
+  <div class="note" style="margin-top:12px">固定部位（只要填股數，沒有就留空）</div>
+  <div id="fixlist"></div>
+  <div class="note" style="margin-top:12px">衛星與其他股票</div>
+  <div style="margin-top:6px" id="hlist"></div>
+  <p class="note" id="autonote"></p>
+  <div class="btns">
+    <button class="ghost" id="addRow">＋ 新增一檔</button>
+    <button id="save">儲存並重新計算</button>
+  </div>
+  <p class="note">持股只存在這支手機（或這個瀏覽器）裡，不會上傳。</p>
+  <details><summary>備份／還原持股</summary>
+    <div class="btns"><button class="ghost" id="exp">複製備份文字</button><button class="ghost" id="imp">貼上還原</button></div>
+  </details>
+  <details><summary>匯入舊的績效紀錄</summary>
+    <p class="note">選擇「績效對標」App 匯出的 JSON（每天的資產、存提款）。匯入後會標成「主觀操作期」，跟之後照策略操作的「策略期」分開顯示；比較對象用含息的 0050。</p>
+    <input type="file" id="impfile" accept=".json,application/json"><p class="note" id="impmsg"></p>
+  </details>
+</section>
+</div>
+
+<div class="pane" id="p-about">
+<section class="card about">
+<h2><span class="tag t-sell" style="background:var(--buy-bg);color:var(--buy)">請先看</span>重要警示</h2>
+<ul class="warn">
+<li><b>這不是投資建議。</b>這是個人研究用的工具，作者不是專業投資人，也沒有證照。照著做賠錢，沒有人會負責。</li>
+<li><b>回測是用過去的資料算出來的，不代表未來。</b>下面的數字是「如果過去 20 年照規則做會怎樣」，未來很可能比較差。</li>
+<li><b>數字很可能被高估。</b>這套規則是在同一段歷史上反覆測試、修改約 90 次後挑出來的。測越多次，越容易挑到「剛好在過去表現好」的版本。</li>
+<li><b>會有很痛的虧損。</b>回測中整體帳戶最多從高點跌掉約 35%，選股部位最多跌掉約 49%，而且從高點算起過了 3 年多才回到原本的高點。</li>
+<li><b>常常會輸給大盤。</b>過去 21 年中，有 10 年整體報酬輸給 0050，可能連續一兩年都輸。</li>
+<li><b>只用不會影響生活的閒錢，不要借錢或用融資操作。</b></li>
+</ul>
+</section>
+
+<section class="card about">
+<h2>這套策略在做什麼</h2>
+<p>把錢分成五份，選股的部分只買「營收創新高、股價也在創新高」的公司，表現轉弱就賣掉。</p>
+<table class="tb"><tr><th>部位</th><th>比重</th><th>用途</th></tr>
+<tr><td>00881（或 0050）</td><td>22.5%</td><td>跟著台股大盤</td></tr>
+<tr><td>短期美債 00719B</td><td>13.5%</td><td>股災時比較穩</td></tr>
+<tr><td>黃金</td><td>9%</td><td>跟股票走勢不同，分散風險</td></tr>
+<tr><td>選股 7 檔</td><td>45%（每檔約 6.4%）</td><td>主要的獲利來源</td></tr>
+<tr><td>現金</td><td>10%</td><td>保留彈性，策略不動用</td></tr></table>
+<p class="note">每 60 個交易日，或任何部位偏離目標超過 3%，就調回原本比重。</p>
+</section>
+
+<section class="card about">
+<h2>選股規則</h2>
+<p><b>買進</b>（三個條件都要符合）：</p>
+<ol><li>最新月營收比過去 12 個月都高</li><li>股價突破過去 60 天最高價</li><li>股價離過去一年最高價不到 15%</li></ol>
+<p>同時有很多檔符合時，挑分數最高的；最多持有 7 檔。</p>
+<p><b>賣出</b>（任一條件成立，隔天賣）：</p>
+<ol><li>營收轉弱，不再接近 12 個月新高</li><li>股價比過去一年最高價低超過 15%</li></ol>
+<p class="note">只看收盤後的資料，隔天執行，不看盤中走勢，也不靠個人判斷。</p>
+</section>
+
+<section class="card about">
+<h2>回測結果 <span class="tag t-warn">2006/01～2026/10</span></h2>
+<table class="tb"><tr><th></th><th>年化報酬</th><th>最大跌幅</th></tr>
+<tr><td>整套配置</td><td>18.3%</td><td>−34.7%</td></tr>
+<tr><td>只看選股 7 檔</td><td>28.4%</td><td>−49.3%</td></tr>
+<tr><td>0050（含息）</td><td>14.8%</td><td>−55.8%</td></tr></table>
+<p class="note">「最大跌幅」是從最高點跌到最低點的幅度。整套配置最慘的一次是 2007 年 7 月到 2008 年 11 月，跌了約 35%，到 2010 年 12 月才回到原本高點。</p>
+<p><b>前後兩段差很多：</b></p>
+<table class="tb"><tr><th></th><th>2006～2015</th><th>2016～2026</th></tr>
+<tr><td>整套配置</td><td>8.9%</td><td>27.6%</td></tr>
+<tr><td>0050</td><td>5.2%</td><td>24.6%</td></tr></table>
+<p class="note">近十年台股是大多頭，報酬特別好，不能期待未來一直這樣。前十年的數字比較接近一般情況。</p>
+<details><summary>每年報酬（整套配置 vs 0050）</summary>
+<table class="tb yr"><tr><th>年</th><th>整套</th><th>0050</th><th>年</th><th>整套</th><th>0050</th></tr>
+<tr><td>2006</td><td>25.1</td><td>21.0</td><td>2017</td><td>19.0</td><td>18.1</td></tr>
+<tr><td>2007</td><td>4.0</td><td>11.0</td><td>2018</td><td>−7.5</td><td>−4.9</td></tr>
+<tr><td>2008</td><td>−20.4</td><td>−43.3</td><td>2019</td><td>22.9</td><td>33.5</td></tr>
+<tr><td>2009</td><td>45.6</td><td>75.0</td><td>2020</td><td>61.2</td><td>31.1</td></tr>
+<tr><td>2010</td><td>5.8</td><td>12.1</td><td>2021</td><td>49.8</td><td>21.9</td></tr>
+<tr><td>2011</td><td>−9.0</td><td>−15.8</td><td>2022</td><td>−21.5</td><td>−21.4</td></tr>
+<tr><td>2012</td><td>9.6</td><td>10.8</td><td>2023</td><td>34.6</td><td>27.5</td></tr>
+<tr><td>2013</td><td>10.2</td><td>6.7</td><td>2024</td><td>37.6</td><td>48.6</td></tr>
+<tr><td>2014</td><td>21.2</td><td>16.7</td><td>2025</td><td>42.4</td><td>35.7</td></tr>
+<tr><td>2015</td><td>5.9</td><td>−6.3</td><td>2026*</td><td>63.7</td><td>66.3</td></tr>
+<tr><td>2016</td><td>14.0</td><td>19.6</td><td></td><td></td><td></td></tr></table>
+<p class="note">單位：%。2026 只算到 10 月。</p>
+</details>
+</section>
+
+<section class="card about">
+<h2>回測有算到、沒算到的</h2>
+<p><b>有算到：</b>手續費和證交稅；用交易所每天的全部股票資料（包含後來下市的公司）；營收在公布後才使用；開盤就漲停的股票視為買不到。</p>
+<p><b>沒算到或可能失真：</b></p>
+<ul><li>回測用當天成交均價買賣，實際成交價可能比較差。</li>
+<li>債券和黃金用美國 ETF（SHY、GLD）換算台幣來模擬，跟實際買的 00719B、GLDM 不完全一樣。</li>
+<li>大盤部位在回測裡用 0050，因為 00881 歷史太短。</li>
+<li>沒算到情緒：實際遇到連續虧損時，很多人會忍不住不照規則做，這通常是最大的損失來源。</li></ul>
+</section>
+
+<section class="card about">
+<h2>什麼時候該懷疑它</h2>
+<p>先講好，避免虧錢時憑感覺決定：</p>
+<ul><li>整體帳戶從高點跌超過 45%（比回測最差還差很多）</li><li>連續兩年都輸給 0050 超過 10 個百分點</li></ul>
+<p class="note">沒碰到這些條件前，短期虧損、某幾檔買錯都屬於正常範圍。</p>
+</section>
+</div>
+
+</main>
+<nav class="tabs"><button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>總覽<span class="nb" id="nb-home"></span></button><button data-tab="sig"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>買賣訊號<span class="nb" id="nb-sig"></span></button><button data-tab="hold"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 6V4h8v2"/></svg>持股與現金<span class="nb" id="nb-hold"></span></button><button data-tab="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>策略說明</button></nav>
+<script>
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 0) => x == null || isNaN(x) ? '—' : Number(x).toLocaleString('zh-TW', {maximumFractionDigits: d, minimumFractionDigits: d});
+const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(0) + '%';
+// 測試版：資料存在獨立的 beta: 欄位，不會改到正式版；第一次打開時複製一份正式版的持股當起點
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('beta:' + k); return v ? JSON.parse(v) : d } catch (e) { return d } },
+  set(k, v) { try { localStorage.setItem('beta:' + k, JSON.stringify(v)) } catch (e) {} }
+};
+try { if (!localStorage.getItem('beta:init')) { ['holdings', 'cash', 'perf', 'trades', 'coresel'].forEach(k => { const v = localStorage.getItem(k); if (v != null) localStorage.setItem('beta:' + k, v) }); localStorage.setItem('beta:init', '1') } } catch (e) {}
+let H = store.get('holdings', [{c: '00881', s: 0}]);
+let CASH = store.get('cash', 0);
+let PERF = store.get('perf', []), PENDFLOW = 0;
+const NOBUY = [], FIXED = [];   // 2026-11-07 使用者決定刪除手動不買名單與固定持有
+try { localStorage.removeItem('nobuy'); localStorage.removeItem('fixed') } catch (e) {}
+let S = null;
+let CORESEL = store.get('coresel', '00881');
+const CORE_OPTS = {'00881': '國泰台灣科技龍頭', '0050': '元大台灣50'};
+const FIXC = [['__CORE__', '核心'], ['00719B', '短債 00719B'], ['GLDM', '黃金 GLDM'], ['00635U', '黃金 00635U']];
+const isFix = c => c in CORE_OPTS || FIXC.some(f => f[0] === c);
+let OTH = [];
+
+function renderEditor() {
+  $('#cash').value = CASH || '';
+  const sh = c => H.filter(h => h.c === c).reduce((a, h) => a + (+h.s || 0), 0);
+  $('#fixlist').innerHTML = FIXC.map(([c0, lab]) => { const c = c0 === '__CORE__' ? CORESEL : c0;
+    const label = c0 === '__CORE__' ? `<b>核心</b> <select id="coresel" style="font:inherit;font-weight:700;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 4px">${Object.keys(CORE_OPTS).map(k => `<option value="${k}"${k === CORESEL ? ' selected' : ''}>${k}</option>`).join('')}</select>` : `<b>${lab}</b>`;
+    return `<div class="hrow"><div style="flex:1;align-self:center">${label}</div>
+    <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>` }).join('');
+  $('#coresel').onchange = e => { const v = e.target.value, inp = $('#fixlist input[data-fix]'); inp.dataset.fix = v; };
+  OTH = H.filter(h => !isFix(h.c));
+  $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
+    <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="decimal" step="any">
+    <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
+}
+function readEditor() {
+  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; OTH[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
+  const fx = [...document.querySelectorAll('#fixlist input')].map(el => ({c: el.dataset.fix, s: +el.value || 0})).filter(h => h.s > 0);
+  // 若在下方又填了固定部位的代號，合併到上方
+  OTH.filter(h => isFix(h.c)).forEach(h => { const f = fx.find(x => x.c === h.c); if (f) f.s += h.s || 0; else if (h.s > 0) fx.push({c: h.c, s: h.s}) });
+  OTH = OTH.filter(h => !isFix(h.c));
+  H = fx.concat(OTH.filter(h => h.c || h.s || h.nw)).map(h => (h.c || h.s ? (delete h.nw, h) : h));
+  CASH = +$('#cash').value || 0;
+  if ($('#coresel')) { CORESEL = $('#coresel').value; store.set('coresel', CORESEL) }
+  PENDFLOW += +$('#flow').value || 0;
+  store.set('holdings', H); store.set('cash', CASH);
+}
+$('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if (d != null) { readEditor(); const x = OTH[+d]; H.splice(H.indexOf(x), 1); renderEditor() } });
+$('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
+const heldMap = () => { const m = {}; H.forEach(h => { if (h.c && h.s > 0) m[h.c] = (m[h.c] || 0) + h.s }); return m };
+let TR = store.get('trades', {lots: {}, closed: []});
+const isSat = c => !isFix(c) && !(S && S.params && ((S.params.defs || {})[c] != null || (S.params.gold_alt || {})[c] != null || (S.params.other || {})[c] != null));
+function logTrades(old, now) {   // 依持股變化推算交易（以資料日收盤價估算成交價，含手續費與證交稅）
+  if (!S) return;
+  const codes = new Set([...Object.keys(old), ...Object.keys(now)]);
+  codes.forEach(c => {
+    if (!isSat(c)) return;
+    const d = (now[c] || 0) - (old[c] || 0), p = S.prices[c];
+    if (!d || !p) return;
+    const L = TR.lots[c] || {sh: 0, cost: 0, d: S.date};
+    if (d > 0) { L.sh += d; L.cost += d * p * 1.000399; if (!TR.lots[c]) L.d = S.date; TR.lots[c] = L }
+    else if (L.sh > 0) {
+      const q = Math.min(-d, L.sh), avg = L.cost / L.sh, cost = q * avg, pro = q * p * (1 - 0.000399 - 0.003);
+      const trim = L.sh - q > 1e-9;   // 只賣一部分＝減碼（調整比例），不算一筆完整交易
+      TR.closed.push({c, n: (S.names || {})[c] || c, din: L.d, dout: S.date, pnl: Math.round(pro - cost), ret: pro / cost - 1, trim});
+      L.sh -= q; L.cost -= cost; if (L.sh <= 1e-9) delete TR.lots[c];
+    }
+  });
+  store.set('trades', TR);
+}
+function fixTrims() {   // 舊紀錄：賣出後還有持股的，標成減碼
+  let ch = false; TR.closed.forEach(t => { if (t.trim === undefined) { t.trim = !!TR.lots[t.c]; ch = true } }); if (ch) store.set('trades', TR);
+}
+function seedLots() {   // 第一次使用：現有衛星持股以今天收盤價當成本
+  let ch = false;
+  Object.entries(heldMap()).forEach(([c, n]) => { if (isSat(c) && !TR.lots[c] && S.prices[c]) { TR.lots[c] = {sh: n, cost: n * S.prices[c], d: S.date, init: true}; ch = true } });
+  if (ch) store.set('trades', TR);
+}
+$('#save').onclick = () => { const old = heldMap(); readEditor(); logTrades(old, heldMap()); $('#flow').value = ''; renderEditor(); render() };
+$('#exp').onclick = async () => { readEditor(); const t = JSON.stringify({H, CASH, PERF}); try { await navigator.clipboard.writeText(t); alert('已複製，貼到記事本保存') } catch (e) { prompt('請複製這段文字保存', t) } };
+$('#impfile').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const arr = JSON.parse(await file.text()), bench = await (await fetch('../bench_0050.json?t=' + Date.now(), {cache: 'no-store'})).json();
+    let n = 0;
+    arr.forEach(r => {
+      if (!r.date || !(r.assets > 0)) return;
+      let x = PERF.find(p => p.d === r.date);
+      if (x && !x.imp) x.va = x.v;
+      if (!x) { x = {d: r.date}; PERF.push(x) }
+      x.v = Math.round(r.assets); x.f = r.flow || 0; x.imp = true; if (bench[r.date]) x.b = bench[r.date]; n++;
+    });
+    PERF.sort((a, c) => a.d < c.d ? -1 : 1); store.set('perf', PERF); renderPerf();
+    $('#impmsg').textContent = `已匯入 ${n} 天（${arr[0].date}～${arr[arr.length - 1].date}）。`;
+  } catch (err) { $('#impmsg').textContent = '匯入失敗：檔案格式不對'; console.log(err) }
+};
+$('#imp').onclick = () => { const t = prompt('貼上之前備份的文字'); if (!t) return; try { const o = JSON.parse(t); H = o.H; CASH = o.CASH; if (o.PERF) { PERF = o.PERF; store.set('perf', PERF) } store.set('holdings', H); store.set('cash', CASH); renderEditor(); render() } catch (e) { alert('格式不對') } };
+
+function row(name, code, why, big, small) {
+  return `<div class="tile"><div class="tn"><b>${name || code}</b>${code ? `<span class="code">${code}</span>` : ''}</div><div class="big">${big}</div>${small ? `<div class="small">${small}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}</div>`;
+}
+function showTab(k) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + k));
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === k));
+  store.set('tab', k); window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+showTab(location.hash === '#about' ? 'about' : ['home', 'sig', 'hold', 'about'].includes(store.get('tab', 'home')) ? store.get('tab', 'home') : 'home');
+
+function render() {
+  if (!S) return;
+  const P = S.prices, core = CORESEL, coreName = CORE_OPTS[core] || S.core.name, DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
+  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
+  const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
+  let stockVal = 0, missing = [];
+  for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c) && !isFix(c)) missing.push(c) }
+  const total = CASH + stockVal;
+  const sat = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && !isFix(c) && !FIXED.includes(c));
+  const fixedHeld = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && FIXED.includes(c));
+  const sells = [], holds = [];
+  sat.forEach(c => {
+    const p = S.pool[c];
+    if (!p) sells.push({c, n: S.names[c], why: '已不在 500 檔股票池'});
+    else if (!p.hold) sells.push({c, n: p.n, why: p.why});
+    else holds.push({c, n: p.n, rnh: p.rnh, h250: p.h250});
+  });
+  let slots = Math.max(0, S.params.sat_n - holds.length - fixedHeld.length);
+  const AUTO = S.auto_nobuy || {}, no = c => NOBUY.includes(c) || AUTO[c];
+  const cands = S.buys.filter(b => !held[b.c] && !no(b.c));
+  const blocked = S.buys.filter(b => no(b.c));
+  // 換股：位子滿時，若今天的第 1 名在最近 5 個交易日中有 swap_k 天都是第 1 名（排除已持有、不買名單），換掉分數最低的持股
+  let swap = null;
+  const K = S.params.swap_k || 0, hist5 = (S.history || []).slice(-5);
+  if (K && slots === 0 && holds.length && cands.length && hist5.length && hist5[hist5.length - 1].date === S.date) {
+    const top = h => (h.buys.find(b => !held[b.c] && !no(b.c) && !FIXED.includes(b.c)) || {}).c;
+    const c1 = cands[0].c, cnt = hist5.filter(h => top(h) === c1).length;
+    const w = holds.reduce((a, x) => ((S.pool[x.c].sc ?? -9) < (S.pool[a.c].sc ?? -9) ? x : a));
+    const gap = (cands[0].score ?? -9) - (S.pool[w.c].sc ?? -9), M = S.params.swap_m || 0;
+    if (cnt >= K && gap >= M) {
+      swap = {buy: cands[0], sell: w, cnt};
+      holds.splice(holds.indexOf(w), 1);
+      sells.push({c: w.c, n: w.n, why: `換股：讓位給 ${cands[0].n || c1}（最近 5 天有 ${cnt} 天是第 1 名，分數高出 ${gap.toFixed(1)}，門檻 ${M}），這檔是持股中分數最低的`});
+      slots = 1;
+    }
+  }
+  const buys = cands.slice(0, slots), extra = cands.slice(slots, slots + 6);
+  const amt = S.params.sat_w * total;
+
+  $('#sub').textContent = `資料日期 ${S.date} 收盤｜下一個交易日執行｜更新於 ${S.generated}`;
+  const coreVal = (held[core] || 0) * (P[core] || 0);
+  $('#summary').innerHTML = `<div class="kpi">
+    <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
+    <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
+    <div><div class="k">${core} 比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
+    ${total ? (() => { const want = FREE * total, free = Math.min(CASH, want), stratCash = Math.max(0, CASH - want);
+      return `<div class="row" style="margin-top:10px"><div class="l"><b>自由使用資金</b><div class="why">總資產的 ${Math.round(FREE * 100)}%，策略不會動用，可以自己操作${CASH < want ? `<br><b>現金不夠：目前現金只有 ${fmt(CASH)} 元，比 ${Math.round(FREE * 100)}% 少 ${fmt(want - CASH)} 元，策略這次不會再用現金買股</b>` : ''}</div></div><div class="r"><div class="big">${fmt(free)} 元</div><div class="small">策略可用現金 ${fmt(stratCash)} 元</div></div></div>`; })() : ''}
+    ${(Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5 ? `<div class="alert"><b>這份資料是 ${S.date} 的舊資料（可能是網路不穩時讀到手機裡的備份），請先不要照著買賣，連上網路後重新整理。</b></div>` : ''}
+    ${missing.length ? `<div class="alert">找不到這些代號的價格：${missing.join('、')}，請確認代號。</div>` : ''}
+    ${held[core] && P[core] == null ? `<div class="alert">${core} 的價格要等第一次自動更新後才有，總資產暫時沒算到它。</div>` : ''}
+    ${total === 0 ? `<div class="alert">先在下方輸入現金和持股，才會算出買賣股數。</div>` : ''}`;
+
+  $('#sells').innerHTML = sells.length ? sells.map(s => row(s.n, s.c, s.why, `全部 ${fmt(held[s.c])} 股`, P[s.c] ? `收盤 ${fmt(P[s.c], 2)}` : '')).join('') : '<div class="empty">沒有要賣的</div>';
+  // 可用現金 = 現金 + 明天賣出的預估款（扣手續費與證交稅），依順序扣
+  let avail = Math.max(0, CASH - FREE * total) + sells.reduce((a, x) => a + (held[x.c] || 0) * (P[x.c] || 0) * (1 - 0.0034), 0);
+  let short = false;
+  $('#buys').innerHTML = (buys.length ? buys.map(b => {
+    let sh = b.price ? Math.floor(amt / b.price) : 0, note = '';
+    const full = sh, fullNote = `原本應買 ${fmt(full)} 股（約 ${fmt(full * (b.price || 0))} 元，總資產 ${(S.params.sat_w * 100).toFixed(1)}%）`;
+    const afford = b.price ? Math.floor(Math.max(0, avail) / (b.price * 1.0004)) : 0;
+    if (total && short) { sh = 0; note = `（現金不足，先跳過）${fullNote}`; }
+    else if (total && afford < sh) { sh = afford; short = true; note = `${sh > 0 ? '（現金不足，只夠這些）' : '（現金不足，先跳過）'}${fullNote}，還差約 ${fmt((full - sh) * (b.price || 0))} 元`; }
+    avail -= sh * (b.price || 0) * 1.0004;
+    return row(b.n, b.c, `${swap && swap.buy.c === b.c ? '<b>換股買進</b>｜' : ''}營收創新高 ${pct(b.rnh)}${b.stk >= 2 ? `（連續 ${b.stk} 個月）` : ''}，突破 60 日高點${note ? '<br><b>' + note + '</b>' : ''}`, total ? `約 ${fmt(sh)} 股` : '—', `約 ${fmt(sh * (b.price || 0))} 元｜收盤 ${fmt(b.price, 2)}`);
+  }).join('') : `<div class="empty">${slots ? '今天沒有符合條件的股票，空位先放現金' : `${S.params.sat_n} 個位子都滿了，不買新的`}</div>`)
+    + (extra.length ? `<details><summary>其他符合但沒有空位（${extra.length}）</summary>${extra.map(b => row(b.n, b.c, `營收 ${pct(b.rnh)}`, `收盤 ${fmt(b.price, 2)}`, '')).join('')}</details>` : '')
+    + (blocked.length ? `<p class="note">系統自動略過：${blocked.map(b => (b.n || '') + ' ' + b.c + (AUTO[b.c] && !NOBUY.includes(b.c) ? `（${AUTO[b.c]}）` : '')).join('、')}</p>` : '');
+
+  const autoHeld = Object.keys(AUTO).filter(c => held[c]);
+  $('#autonote').innerHTML = `系統每天自動排除 ${Object.keys(AUTO).length} 檔（公開收購、全額交割、暫停/停止交易、即將下市），不用手動輸入。` + (autoHeld.length ? `<br><b>你持有的 ${autoHeld.map(c => (S.names[c] || '') + ' ' + c + '（' + AUTO[c] + '）').join('、')} 在名單上，要不要賣請自己判斷。</b>` : '');
+  $('#coreTitle').textContent = `${core} ${coreName}`;
+  const cp = P[core];
+  let coreHtml = row(coreName, core, `目標 ${(S.params.core_w * 100).toFixed(1)}%，目前 ${total ? (coreVal / total * 100).toFixed(1) : '—'}%`, `${fmt(held[core] || 0)} 股`, cp ? `收盤 ${fmt(cp, 2)}` : '價格等第一次更新');
+  if (S.core.rebalance_today && total && cp) {
+    const diff = S.params.core_w * total - coreVal, sh = Math.floor(Math.abs(diff) / cp);
+    coreHtml += `<div class="alert">今天是核心調整日：${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）</div>`;
+  } else coreHtml += `<p class="note">每 ${S.params.core_k} 個交易日調整一次，還有 ${S.params.core_k - S.core.days_since} 個交易日。</p>`;
+  if (total && cp) {
+    const w = coreVal / total, gap = (w - S.params.core_w) * total;
+    if (Math.abs(w - S.params.core_w) > 0.05) coreHtml += `<div class="alert">${core} 目前${gap > 0 ? '超出' : '低於'}目標約 ${fmt(Math.abs(gap))} 元（${(Math.abs(w - S.params.core_w) * 100).toFixed(0)}%）。${gap > 0 ? `這筆錢沒辦法用來買策略股票；想讓策略照設定運作，可以先賣到 ${(S.params.core_w * 100).toFixed(1)}%。` : ''}</div>`;
+  }
+  $('#core').innerHTML = coreHtml;
+  if (!DEFS0.length) { $('#defcard').style.display = 'none' } else {
+    let dh = '', al = '';
+    const fx2 = S.params.usdtwd || 32, MIN_G = 600 * fx2;   // GLDM 單筆至少約 600 美元，複委託最低手續費才不會太貴
+    const tip = (c, txt) => S.core.rebalance_today ? '今天是調整日：' + txt : '偏離目標超過 3%：' + txt;
+    const pxNote = c => P[c] ? (/^\d/.test(c) ? `收盤 ${fmt(P[c], 2)}` : `約 ${fmt(P[c], 2)} 元／股（美元收盤×匯率）`) : '價格等下一次更新';
+    DEFS0.forEach(c => {
+      const tw = DEFW[c];
+      if (c === 'GLDM') {
+        const gs = ['GLDM'].concat(GALT), val = x => (held[x] || 0) * (P[x] || 0), v = gs.reduce((a, x) => a + val(x), 0), w = total ? v / total : 0;
+        dh += row('黃金（GLDM＋00635U 合計）', '', `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%<br>` + gs.map(x => `${x}：${+(held[x] || 0).toFixed(4)} 股｜${pxNote(x)}`).join('<br>'), `約 ${fmt(v)} 元`, '');
+        if (total && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
+          const diff = tw * total - v, alt = GALT[0];
+          if (diff > 0) {
+            const useAlt = diff < MIN_G || !P['GLDM'], code = useAlt ? alt : 'GLDM', n = P[code] ? Math.floor(diff / P[code]) : 0;
+            if (n > 0) al += `<div class="alert">${tip(code, `買進約 ${fmt(diff)} 元，建議買 ${code} 約 ${fmt(n)} 股`)}${useAlt && P['GLDM'] ? `（金額不到約 ${fmt(MIN_G)} 元，買 GLDM 手續費太貴）` : ''}</div>`;
+          } else {
+            let need = -diff; const parts = [];
+            for (const x of [alt, 'GLDM']) { if (!P[x] || !held[x] || need <= 0) continue; const n = Math.min(held[x], Math.floor(need / P[x])); if (n > 0) { parts.push(`${x} 約 ${fmt(n)} 股`); need -= n * P[x] } }
+            if (parts.length) al += `<div class="alert">${tip('', `賣出約 ${fmt(-diff)} 元：${parts.join('、')}（先賣 00635U）`)}</div>`;
+          }
+        }
+        return;
+      }
+      const pr = P[c], v = (held[c] || 0) * (pr || 0), w = total ? v / total : 0;
+      dh += row(S.params.def_names[c] || S.names[c] || c, c, `目標 ${(tw * 100).toFixed(1)}%，目前 ${total ? (w * 100).toFixed(1) : '—'}%`, `${fmt(held[c] || 0)} 股`, pxNote(c));
+      if (total && pr && (S.core.rebalance_today || Math.abs(w - tw) > 0.03)) {
+        const diff = tw * total - v, sh = Math.floor(Math.abs(diff) / pr);
+        if (sh > 0) al += `<div class="alert">${tip(c, `${diff > 0 ? '買進' : '賣出'}約 ${fmt(Math.abs(diff))} 元（約 ${fmt(sh)} 股）`)}</div>`;
+      }
+    });
+    dh += `<p class="note">和核心 ${core} 一起每 ${S.params.core_k} 個交易日調回目標比例。黃金加碼金額不到約 ${fmt(MIN_G)} 元（約 600 美元）時買 00635U，超過才買 GLDM；減碼先賣 00635U。另外保留 ${Math.round(FREE * 100)}% 自由資金${total ? `（約 ${fmt(FREE * total)} 元）` : ''}，策略買股票時不會動用。</p>`;
+    $('#defs').innerHTML = dh.replace('<p class="note">', al + '<p class="note">');
+  }
+
+  const stopInfo = h => {
+    if (!P[h.c] || !h.h250) return '';
+    const stop = P[h.c] / h.h250 * S.params.hold_h250, room = 1 - stop / P[h.c];
+    const txt = `停損價 約 ${fmt(stop, 2)}（收盤跌破就賣，再跌 ${(room * 100).toFixed(1)}% 就到）`;
+    return room <= 0.05 ? `<br><span class="danger">⚠ 接近停損：${txt}</span>` : `<br>${txt}`;
+  };
+  $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
+  $('#holds').innerHTML += OTH2.filter(c => held[c]).map(c => row(OTHN[c] || c, c, `其他持股（不受策略管理，不會叫你賣）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${+held[c].toFixed(4)} 股`, P[c] ? `約 ${fmt(held[c] * P[c])} 元（美元收盤×匯率）` : '價格等下一次更新')).join('');
+  $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
+  try { snap(total); renderPerf() } catch (e) { console.log(e) }
+  try { renderShadow() } catch (e) { console.log(e) }
+  try { renderDemo() } catch (e) { console.log(e) }
+  try { renderCredit() } catch (e) { console.log(e) }
+  try { seedLots(); fixTrims(); renderStats() } catch (e) { console.log(e) }
+  $('#nb-sig').textContent = (sells.length + buys.length) || '';
+  collapse($('#hist'), S.history.slice().reverse().map(d => `<div class="row"><div class="l"><b>${d.date}</b></div><div class="r small" style="white-space:normal">${d.buys.length ? d.buys.map(b => b.n || b.c).join('、') : '無'}</div></div>`));
+}
+
+renderEditor();
+
+
+function snap(total) {
+  if (!S || !total || (Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5) return;   // 舊資料不記
+  const d = S.date, b = S.bench && S.bench.adj;
+  let x = PERF.find(p => p.d === d);
+  if (!x) { x = {d, f: 0}; PERF.push(x); PERF.sort((a, c) => a.d < c.d ? -1 : 1) }
+  x.v = Math.round(total); if (b) x.b = b;
+  if (PENDFLOW) { x.f = (x.f || 0) + PENDFLOW; PENDFLOW = 0 }
+  store.set('perf', PERF);
+}
+function renderStats() {
+  const A = PERF.filter(p => p.v > 0), pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  let h = '';
+  if (A.length >= 2) {
+    const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
+    const mdd = arr => { let pk = -Infinity, m = 0; arr.forEach(x => { if (x == null) return; pk = Math.max(pk, x); m = Math.min(m, x / pk - 1) }); return m };
+    const k = A.findIndex(p => p.b), my = mdd(s), bm = k >= 0 ? mdd(A.slice(k).map(p => p.b || null)) : null;
+    const cur = s[s.length - 1] / Math.max(...s) - 1;
+    h += `<div class="row"><div class="l"><b>最大回撤</b><div class="why">從 ${A[0].d} 起，帳戶從最高點最多跌了多少｜目前離最高點 ${pc(cur)}</div></div><div class="r"><div class="big">${pc(my)}</div><div class="small">${bm == null ? '' : `0050 ${pc(bm)}`}</div></div></div>`;
+  }
+  const TRM = TR.closed.filter(t => t.trim), C = TR.closed.filter(t => !t.trim), w = C.filter(t => t.ret > 0), l = C.filter(t => t.ret <= 0), avg = a => a.reduce((x, t) => x + t.ret, 0) / a.length;
+  if (C.length) {
+    const aw = w.length ? avg(w) : 0, al = l.length ? avg(l) : 0;
+    h += `<div style="margin-top:10px"><b>已完成交易（衛星股，全部賣出才算一筆）</b>
+      <div class="kpi" style="margin-top:6px"><div><div class="k">勝率</div><div class="v">${(w.length / C.length * 100).toFixed(0)}%</div></div><div><div class="k">賺賠比</div><div class="v">${w.length && l.length ? (aw / -al).toFixed(2) : '—'}</div></div><div><div class="k">合計</div><div class="v">${fmt(C.reduce((x, t) => x + t.pnl, 0))}</div></div></div>
+      <div class="why">${C.length} 筆（賺 ${w.length}、賠 ${l.length}）｜平均賺 ${w.length ? pc(aw) : '—'}｜平均賠 ${l.length ? pc(al) : '—'}</div></div>`;
+    h += `<details><summary class="note">最近的交易</summary>${C.slice(-10).reverse().map(t => `<div class="row"><div class="l"><b>${t.n}</b><span class="code">${t.c}</span><div class="why">${t.din} → ${t.dout}</div></div><div class="r"><div class="big">${pc(t.ret)}</div><div class="small">${fmt(t.pnl)} 元</div></div></div>`).join('')}</details>`;
+  } else h += `<p class="note">還沒有完成的衛星股交易（全部賣出才算一筆）。之後每次在「持股與現金」更新股數並儲存，App 會自動記下買賣。</p>`;
+  if (TRM.length) h += `<p class="note">另有 ${TRM.length} 次減碼（只賣一部分，例如調整比例），合計 ${fmt(TRM.reduce((x, t) => x + t.pnl, 0))} 元，不算進勝率。</p>`;
+  h += `<p class="note">回測參考（2006–2026，1,250 筆）：勝率約 44%、平均賺 +18.6%、平均賠 −8.2%、賺賠比約 2.3。勝率不到一半是正常的，靠賺的時候賺比較多。成交價以資料日收盤價估算，含手續費與證交稅；開始使用時已持有的股票，成本以當天收盤價計。</p>`;
+  $('#stats').innerHTML = h;
+}
+function renderCredit() {
+  const C = S.credit, el = $('#credit');
+  if (!C) { $('#creditcard').style.display = 'none'; return }
+  const sg = x => (x >= 0 ? '+' : '') + x.toFixed(2);
+  const spark = (arr, col) => { const v = arr.map(x => x[1]), lo = Math.min(...v), hi = Math.max(...v), W = 320, H = 60, X = i => 4 + i * (W - 8) / (v.length - 1), Y = y => H - 6 - (y - lo) / ((hi - lo) || 1) * (H - 12);
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%"><polyline fill="none" stroke="${col}" stroke-width="2" points="${v.map((y, i) => X(i) + ',' + Y(y)).join(' ')}"/></svg><div class="small" style="display:flex;justify-content:space-between;font-size:11px;white-space:nowrap"><span>${arr[0][0].slice(2)}</span><span>低 ${lo.toFixed(2)}%｜高 ${hi.toFixed(2)}%</span><span>${arr[arr.length - 1][0].slice(2)}</span></div>` };
+  el.innerHTML = `<div class="row"><div class="l"><b>公司債利差（BAA − 10 年公債）</b><div class="why">${C.month} 月平均｜比 6 個月前 ${sg(C.chg6)} 個百分點${C.lit ? '｜<b>擴大 ≥0.5：亮燈</b>' : ''}</div></div><div class="r"><div class="big">${C.spread.toFixed(2)}%</div><div class="small">${C.lit ? '市場緊張' : '未亮燈'}</div></div></div>
+  ${spark(C.hist, '#5b6')}
+  <div class="row" style="margin-top:8px"><div class="l"><b>高收益債利差（每日）</b><div class="why">${C.hy_date}｜半年前 ${C.hy_6m.toFixed(2)}%｜平常約 3–5%，2020 年疫情約 11%，2008 年約 20%</div></div><div class="r"><div class="big">${C.hy.toFixed(2)}%</div></div></div>
+  ${spark(C.hy_hist, '#c84')}
+  <p class="note">只用來看債券市場有多緊張，不是買賣訊號：回測（v79）亮燈就賣反而少賺；歷史上亮燈後那段時間股市平均報酬反而較高。月資料每月初更新一次。</p>`;
+}
+function renderDemo() {
+  const D = S.demo, el = $('#demo');
+  if (!D || !D.nav || !D.nav.length) { el.innerHTML = '<div class="empty">今天收盤後第一次更新時開始建倉，之後每天自動更新。</div>'; return }
+  const nav = D.nav, v = nav[nav.length - 1][1], r = v / D.start_cash - 1;
+  const b0 = (nav.find(x => x[2] != null) || [])[2], bl = nav[nav.length - 1][2], br = b0 && bl ? bl / b0 - 1 : null;
+  const p1 = x => x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%';
+  let h = `<div class="kpi"><div><div class="k">目前資產</div><div class="v">${fmt(v)}</div></div><div><div class="k">報酬</div><div class="v">${p1(r)}</div></div><div><div class="k">同期 0050</div><div class="v">${p1(br)}</div></div></div>`;
+  if (nav.length >= 2) {
+    const W = 320, Hh = 120, sv = nav.map(x => (x[1] / D.start_cash - 1) * 100), bv = nav.map(x => x[2] != null && b0 ? (x[2] / b0 - 1) * 100 : null);
+    const all = sv.concat(bv.filter(x => x != null), [0]), lo = Math.min(...all), hi = Math.max(...all), rg = (hi - lo) || 1;
+    const X = i => 8 + i * (W - 16) / (nav.length - 1), Y = y => 8 + (hi - y) / rg * (Hh - 20);
+    const line = (a, c) => `<polyline fill="none" stroke="${c}" stroke-width="2" points="${a.map((y, i) => y == null ? '' : X(i) + ',' + Y(y)).join(' ')}"/>`;
+    h += `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;margin-top:8px" role="img" aria-label="示範帳戶與 0050 累積報酬"><line x1="8" x2="${W - 8}" y1="${Y(0)}" y2="${Y(0)}" stroke="#ccc" stroke-dasharray="3 3"/>${line(bv, '#999')}${line(sv, 'var(--warn)')}</svg><p class="note"><span style="color:var(--warn)">━ 示範帳戶</span>　<span style="color:#999">━ 0050（含配息）</span>｜${nav[0][0]} ～ ${nav[nav.length - 1][0]}</p>`;
+  }
+  const hs = (D.hold || []).slice().sort((a, b) => (b.fix - a.fix) || (b.val - a.val));
+  h += `<div class="grid" style="margin-top:10px">${hs.map(x => row(x.n, x.c, `占 ${(x.w * 100).toFixed(1)}%（目標 ${x.fix ? {'00881': 22.5, '00719B': 13.5, '00635U': 9}[x.c] : 6.4}%）`, `${fmt(x.sh)} 股`, `約 ${fmt(x.val)} 元｜收盤 ${fmt(x.price, 2)}`)).join('')}${row('現金', '', `占 ${(D.cash / v * 100).toFixed(1)}%（保留 10%）`, `${fmt(D.cash)} 元`, '')}</div>`;
+  const pb = D.pend_buy || [], ps = D.pend_sell || [];
+  h += `<p class="note" style="margin-top:10px"><b>下一個交易日會做：</b>${!pb.length && !ps.length ? '沒有要買賣' : ''}${ps.map(x => `賣 ${x.n || x.c}（${x.why}）`).join('、')}${ps.length && pb.length ? '；' : ''}${pb.map(x => `買 ${x.n || x.c}`).join('、')}</p>`;
+  const lg = (D.log || []).slice().reverse();
+  if (lg.length) h += `<details><summary>交易紀錄（${lg.length}）</summary>${lg.map(t => `<div class="row"><div class="l"><b>${t.act} ${t.n || t.c}</b><span class="code">${t.c}</span><div class="why">${t.d}｜${t.why}</div></div><div class="r"><div class="big">${fmt(t.sh)} 股</div><div class="small">@ ${fmt(t.p, 2)}</div></div></div>`).join('')}</details>`;
+  h += `<p class="note">從 ${D.start} 用 50 萬開始，完全照規則操作、不需要輸入任何東西。以收盤價成交，已扣手續費與交易稅；黃金用 00635U 代替 GLDM（台股掛牌、每天有台幣價格）。這是紙上模擬，不是你的帳戶。</p>`;
+  el.innerHTML = h;
+}
+function renderShadow() {
+  const PP = S.paper, el = $('#shadow');
+  if (!PP || !PP.official || !PP.shadow) { $('#shadowcard').style.display = 'none'; return }
+  const o = PP.official, w = PP.shadow, n = Math.min(o.nav.length, w.nav.length);
+  const r = a => a.nav[a.nav.length - 1][1] / a.nav[0][1] - 1, pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  const names = l => l.length ? l.map(x => x.n || x.c).join('、') : '—';
+  const diffB = w.pend_buy.filter(x => !o.pend_buy.some(y => y.c === x.c)), diffO = o.pend_buy.filter(x => !w.pend_buy.some(y => y.c === x.c));
+  let h = `<p class="note">兩個紙上組合都從 ${o.start} 用 100 萬開始，只模擬衛星 7 檔（收盤成交、含手續費與稅），不影響你的實際下單。影子版本：營收連續 ${S.shadow_rule ? S.shadow_rule.n : 3} 個月以上創新高的股票優先。</p>
+  <div class="kpi"><div><div class="k">現行規則</div><div class="v">${pc(r(o))}</div></div><div><div class="k">影子版本</div><div class="v">${pc(r(w))}</div></div><div><div class="k">差距</div><div class="v">${pc(r(w) - r(o))}</div></div></div>`;
+  if (diffB.length || diffO.length) h += `<div class="alert">明天兩者選股不同：影子版本會買 ${names(diffB)}${diffO.length ? `；現行規則會買 ${names(diffO)}` : ''}</div>`;
+  h += `<p class="note">現行持股：${names(o.hold)}<br>影子持股：${names(w.hold)}<br>已追蹤 ${n} 個交易日。至少跑半年到一年再判斷，短期差距多半是運氣。</p>`;
+  el.innerHTML = h;
+}
+function renderPerf() {
+  const A = PERF.filter(p => p.v > 0), el = $('#perf');
+  if (A.length < 2) { el.innerHTML = `<p class="note">${A.length ? `已從 ${A[0].d} 開始記錄。` : ''}之後每天收盤後打開 App，就會累積你的績效並和 0050 比較。</p>`; return }
+  const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
+  const k = A.findIndex(p => p.b), last = A.length - 1;
+  const pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
+  const since = base => { const r = s[last] / s[base] - 1, hasB = A[base].b && A[last].b, b = hasB ? A[last].b / A[base].b - 1 : null;
+    return `<div class="row"><div class="l"><b>__L__</b><div class="why">從 ${A[base].d} 收盤起算</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '0050 資料還沒有' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
+  const y0 = A[last].d.slice(0, 4), m0 = A[last].d.slice(0, 7);
+  const lastBefore = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
+  const b0 = k < 0 ? 0 : k;
+  const li = A.reduce((m, p, j) => p.imp ? j : m, -1);
+  const seg = (a, z, lab) => { const r = s[z] / s[a] - 1, b = A[a].b && A[z].b ? A[z].b / A[a].b - 1 : null;
+    return `<div class="row"><div class="l"><b>${lab}</b><div class="why">${A[a].d}～${A[z].d}</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
+  let h = (li >= 0 ? seg(0, li, '主觀操作期') + (last > li ? seg(li, last, '策略期') : '') : '') + since(b0).replace('__L__', '開始記錄以來') + since(lastBefore(y0 + '-01-01')).replace('__L__', '今年以來') + since(lastBefore(m0 + '-01')).replace('__L__', '本月');
+  if (k >= 0 && last - k >= 2) {
+    const xs = A.slice(k), sv = xs.map((p, i) => s[k + i] / s[k] - 1), bv = xs.map(p => p.b ? p.b / A[k].b - 1 : null);
+    const all = sv.concat(bv.filter(x => x != null)), lo = Math.min(0, ...all), hi = Math.max(0, ...all), W = 320, Hh = 120, X = i => 8 + i * (W - 16) / (xs.length - 1), Y = v => Hh - 16 - (v - lo) / ((hi - lo) || 1) * (Hh - 32);
+    const line = (arr, col) => `<polyline fill="none" stroke="${col}" stroke-width="2" points="${arr.map((v, i) => v == null ? '' : X(i) + ',' + Y(v)).join(' ')}"/>`;
+    h += `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;margin-top:8px" role="img" aria-label="累積報酬：我的組合與 0050"><line x1="8" x2="${W - 8}" y1="${Y(0)}" y2="${Y(0)}" stroke="#ccc" stroke-dasharray="3 3"/>${line(bv, '#999')}${line(sv, '#d33')}${li > k && li < last ? `<line x1="${X(li - k)}" x2="${X(li - k)}" y1="6" y2="${Hh - 10}" stroke="#888" stroke-dasharray="2 3"/>${X(li - k) > W * 0.6 ? `<text x="${X(li - k) - 4}" y="14" font-size="10" fill="#888" text-anchor="end">左：主觀操作｜右：策略</text>` : `<text x="${X(li - k) - 4}" y="14" font-size="10" fill="#888" text-anchor="end">主觀</text><text x="${X(li - k) + 4}" y="14" font-size="10" fill="#888">策略</text>`}` : ''}</svg><p class="note"><span style="color:#d33">━ 我的組合</span>　<span style="color:#999">━ 0050（含配息）</span></p>`;
+  }
+  h += `<p class="note">已記錄 ${A.length} 天。存入／提出的錢不算進報酬。只有打開 App 的日子會記錄，沒打開的日子會跳過，不影響累積計算。</p>`;
+  el.innerHTML = h;
+}
+
+function collapse(el, rowsHtml, n = 2) {
+  if (rowsHtml.length <= n) { el.innerHTML = rowsHtml.join(''); return }
+  const id = el.id, open = !!(window._open || {})[id];
+  el.innerHTML = rowsHtml.slice(0, n).join('') + `<div class="more" style="${open ? '' : 'display:none'}">${rowsHtml.slice(n).join('')}</div>`
+    + `<button class="btn ghost" style="width:100%;margin-top:8px" onclick="(window._open=window._open||{})['${id}']=!window._open['${id}'];this.previousElementSibling.style.display=window._open['${id}']?'':'none';this.textContent=window._open['${id}']?'收合':'展開全部（共 ${rowsHtml.length} 筆）'">${open ? '收合' : `展開全部（共 ${rowsHtml.length} 筆）`}</button>`;
+}
+function renderDT() {
+  const D = S && S.dt;
+  if (!D) { $('#dtcard').style.display = 'none'; return }
+  $('#dtrule').textContent = `${D.date || ''} 收盤後整理｜${D.rule || ''}｜依近 10 日平均振幅排序（波動大的在前）`;
+  if (!D.items || !D.items.length) { $('#dtlist').innerHTML = `<div class="empty">今天沒有資料${D.err ? '（' + D.err + '）' : ''}</div>`; return }
+  const f2 = x => fmt(x, 2), tg = b => b === '偏空' ? 't-sell' : b === '偏多' ? 't-buy' : 't-core';
+  collapse($('#dtlist'), D.items.map(r => `<div class="tile"><div class="tn"><b>${r.n || r.c}</b><span class="code">${r.c}</span> <span class="tag ${tg(r.bias)}">${r.bias}</span></div>
+    <div class="big">${f2(r.close)} <span class="small">${(r.chg >= 0 ? '+' : '') + (r.chg * 100).toFixed(1)}%｜振幅 ${(r.rng * 100).toFixed(1)}%</span></div>
+    <div class="dtl"><span class="k">壓力</span><span>${r.res.length ? r.res.map(f2).join('、') : '—'}</span>
+    <span class="k">支撐</span><span>${r.sup.length ? r.sup.map(f2).join('、') : '—'}</span>
+    <span class="k">型態</span><span>${r.trend}｜收在當日${r.pos > 0.7 ? '高檔' : r.pos < 0.3 ? '低檔' : '中間'}｜5 日 ${pct(r.r5)}</span>
+    <span class="k">當沖</span><span>${r.short_ok || '—'}｜每檔 ${r.tick} 元，賺 ${r.ticks} 檔才打平</span></div></div>`));
+}
+fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; render() })
+  .catch(() => { $('#sub').textContent = '讀取資料失敗，請稍後重新整理' });
+
+</script>
+</body>
+</html>

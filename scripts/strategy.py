@@ -87,6 +87,67 @@ def paper_step(pp, d, px, sig, hold_ok, score, nobuy):
     pp.setdefault('nav', []).append([str(d.date()), round(nav, 0)]); pp['nav'] = pp['nav'][-800:]
     return pp
 
+DEMO_START = 500_000   # 2026-11-13 使用者要求：50 萬示範帳戶，完整配置，每天自動照規則操作（只在測試版 App 顯示）
+DEMO_FIX = {CORE: CORE_W, '00719B': DEF['00719B'], '00635U': DEF['GLDM']}   # 黃金用台股掛牌的 00635U（每天有台幣收盤價）
+
+def demo_step(dm, d, px, sig, hold_ok, score, nobuy, bench=None):
+    """示範帳戶（完整配置）：今天收盤先執行昨天留下的委託與再平衡，再依今天訊號留下明天的委託。股數取整數。"""
+    ds = str(d.date())
+    if dm.get('last') == ds: return dm
+    P = lambda c: float(px.get(c, np.nan))
+    ok = lambda c: np.isfinite(P(c)) and P(c) > 0
+    hold, log = dm.setdefault('hold', {}), dm.setdefault('log', [])
+    st = {'cash': dm['cash']}
+    val = lambda: st['cash'] + sum(n * P(c) for c, n in hold.items() if ok(c))
+    def trade(c, q, why):
+        q = float(np.floor(abs(q))) * (1 if q > 0 else -1)
+        if q == 0: return
+        p = P(c)
+        st['cash'] += -q * p * (1 + BUY_C) if q > 0 else -q * p * (1 - SELL_C)
+        hold[c] = hold.get(c, 0) + q
+        if hold[c] <= 0: hold.pop(c)
+        log.append([ds, c, '買' if q > 0 else '賣', int(abs(q)), round(p, 2), why])
+    # 1. 昨天留下的賣出
+    for c in dm.get('pend_sell', []):
+        if c in hold and ok(c): trade(c, -hold[c], dm.get('sell_why', {}).get(c, '訊號賣出'))
+    # 2. 固定部位：建倉、每 60 交易日或偏離 >3% 調回；衛星超過目標 3% 也減回
+    nav = val(); dm['n'] = dm.get('n', -1) + 1
+    w = lambda c: hold.get(c, 0) * P(c) / nav if ok(c) else 0
+    due = dm['n'] % CORE_K == 0
+    drift = any(abs(w(c) - t) > 0.03 for c, t in DEMO_FIX.items() if ok(c))
+    if due or drift:
+        why = '開始建倉' if dm['n'] == 0 else ('每 60 交易日調回目標比重' if due else '偏離目標超過 3%，調回')
+        for c in [x for x in hold if x not in DEMO_FIX]:
+            if ok(c) and w(c) > SAT_W + 0.03: trade(c, -(hold[c] - SAT_W * nav / P(c)), why)
+        for c, t in DEMO_FIX.items():
+            if ok(c) and t * nav / P(c) < hold.get(c, 0): trade(c, t * nav / P(c) - hold.get(c, 0), why)
+        for c, t in DEMO_FIX.items():
+            q = t * nav / P(c) - hold.get(c, 0) if ok(c) else 0
+            if q > 0: trade(c, min(q, max(st['cash'], 0) / (P(c) * (1 + BUY_C))), why)
+    # 3. 昨天留下的買進（衛星，每檔總資產 6.4%，保留 10% 現金）
+    for c in dm.get('pend_buy', []):
+        nsat = len([x for x in hold if x not in DEMO_FIX])
+        if c in hold or nsat >= SAT_N or not ok(c): continue
+        amt = min(st['cash'] - FREE_W * nav, SAT_W * nav)
+        if amt < P(c): continue
+        trade(c, amt / (P(c) * (1 + BUY_C)), '訊號買進')
+    # 4. 明天的委託（與紙上組合相同規則）
+    sats = [c for c in hold if c not in DEMO_FIX]
+    sells = [c for c in sats if not hold_ok.get(c, False)]; why = {c: '營收轉弱或離一年高點超過 15%' for c in sells}
+    cand = score[sig].dropna().sort_values(ascending=False)
+    cand = cand[[c for c in cand.index if c not in nobuy and c not in hold]]
+    tops = (dm.get('tops', []) + [cand.index[0] if len(cand) else ''])[-5:]
+    keep = [c for c in sats if c not in sells]
+    if len(cand) and len(keep) >= SAT_N and tops.count(cand.index[0]) >= SWAP_K:
+        sc = lambda c: score.get(c, -9) if np.isfinite(score.get(c, np.nan)) else -9
+        low = min(keep, key=sc)
+        if cand.iloc[0] - sc(low) >= SWAP_M: sells.append(low); why[low] = f'換股：讓位給分數更高的 {cand.index[0]}'
+    free = SAT_N - (len(sats) - len(sells))
+    dm.update(cash=st['cash'], pend_sell=sells, sell_why=why, pend_buy=list(cand.index[:max(free, 0)]), tops=tops, last=ds)
+    dm.setdefault('nav', []).append([ds, round(val(), 0), None if bench is None or not np.isfinite(bench) else round(float(bench), 4)])
+    dm['nav'] = dm['nav'][-800:]; dm['log'] = log[-300:]
+    return dm
+
 def compute_pool(st, i):
     """第 i 列（新季第一天）之前的資料決定本季 500 檔"""
     adj, money = st['adj'], st['money']

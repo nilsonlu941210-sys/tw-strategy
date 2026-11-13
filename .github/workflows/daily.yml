@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['scripts/**', 'web/**', '.github/workflows/**']
+    paths: ['scripts/**', 'web/**', 'beta/**', '.github/workflows/**']
 
 permissions:
   contents: write
@@ -82,7 +82,9 @@ jobs:
           git push -f origin data
 
       - name: 準備網頁
-        run: cp -r web/* site/
+        run: |
+          cp -r web/* site/
+          mkdir -p site/beta && cp -r beta/* site/beta/ && cp site/signals.json site/beta/signals.json
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
