@@ -48,6 +48,9 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .about p,.about li{font-size:14px}.about ul,.about ol{padding-left:20px;margin:6px 0}.about li{margin:4px 0}
 .about ul.warn li{color:var(--ink)}.about ul.warn li b{color:var(--buy)}
 .tb{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0;font-variant-numeric:tabular-nums}.tb th,.tb td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}.tb th{color:var(--mute);font-weight:600}.tb.yr td,.tb.yr th{text-align:right}
+.phero .k{font-size:12px;color:var(--mute)}.phero .pv{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}.phero .pk{display:flex;gap:16px;font-size:13px;color:var(--mute);margin-top:2px}.phero b{font-variant-numeric:tabular-nums}
+.ptip{font-size:12px;color:var(--mute);min-height:18px;margin:12px 0 4px;font-variant-numeric:tabular-nums}.pax{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-top:2px}
+.prg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.prg button{padding:8px 0;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:13px}.prg button.on{border-color:#e8920c;color:#e8920c;font-weight:700}
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:9}
 .tabs button{background:transparent;color:var(--mute);padding:6px 2px;border-radius:10px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
 .tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
@@ -497,25 +500,48 @@ function renderPerf() {
   const A = PERF.filter(p => p.v > 0), el = $('#perf');
   if (A.length < 2) { el.innerHTML = `<p class="note">${A.length ? `已從 ${A[0].d} 開始記錄。` : ''}之後每天收盤後打開 App，就會累積你的績效並和 0050 比較。</p>`; return }
   const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
-  const k = A.findIndex(p => p.b), last = A.length - 1;
-  const pc = x => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%';
-  const since = base => { const r = s[last] / s[base] - 1, hasB = A[base].b && A[last].b, b = hasB ? A[last].b / A[base].b - 1 : null;
-    return `<div class="row"><div class="l"><b>__L__</b><div class="why">從 ${A[base].d} 收盤起算</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '0050 資料還沒有' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
-  const y0 = A[last].d.slice(0, 4), m0 = A[last].d.slice(0, 7);
-  const lastBefore = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
-  const b0 = k < 0 ? 0 : k;
-  const li = A.reduce((m, p, j) => p.imp ? j : m, -1);
-  const seg = (a, z, lab) => { const r = s[z] / s[a] - 1, b = A[a].b && A[z].b ? A[z].b / A[a].b - 1 : null;
-    return `<div class="row"><div class="l"><b>${lab}</b><div class="why">${A[a].d}～${A[z].d}</div></div><div class="r"><div class="big">${pc(r)}</div><div class="small">${b == null ? '' : `0050 ${pc(b)}｜${r >= b ? '贏' : '輸'} ${Math.abs((r - b) * 100).toFixed(1)} 個百分點`}</div></div></div>` };
-  let h = (li >= 0 ? seg(0, li, '主觀操作期') + (last > li ? seg(li, last, '策略期') : '') : '') + since(b0).replace('__L__', '開始記錄以來') + since(lastBefore(y0 + '-01-01')).replace('__L__', '今年以來') + since(lastBefore(m0 + '-01')).replace('__L__', '本月');
-  if (k >= 0 && last - k >= 2) {
-    const xs = A.slice(k), sv = xs.map((p, i) => s[k + i] / s[k] - 1), bv = xs.map(p => p.b ? p.b / A[k].b - 1 : null);
-    const all = sv.concat(bv.filter(x => x != null)), lo = Math.min(0, ...all), hi = Math.max(0, ...all), W = 320, Hh = 120, X = i => 8 + i * (W - 16) / (xs.length - 1), Y = v => Hh - 16 - (v - lo) / ((hi - lo) || 1) * (Hh - 32);
-    const line = (arr, col) => `<polyline fill="none" stroke="${col}" stroke-width="2" points="${arr.map((v, i) => v == null ? '' : X(i) + ',' + Y(v)).join(' ')}"/>`;
-    h += `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;margin-top:8px" role="img" aria-label="累積報酬：我的組合與 0050"><line x1="8" x2="${W - 8}" y1="${Y(0)}" y2="${Y(0)}" stroke="#ccc" stroke-dasharray="3 3"/>${line(bv, '#999')}${line(sv, '#d33')}${li > k && li < last ? `<line x1="${X(li - k)}" x2="${X(li - k)}" y1="6" y2="${Hh - 10}" stroke="#888" stroke-dasharray="2 3"/>${X(li - k) > W * 0.6 ? `<text x="${X(li - k) - 4}" y="14" font-size="10" fill="#888" text-anchor="end">左：主觀操作｜右：策略</text>` : `<text x="${X(li - k) - 4}" y="14" font-size="10" fill="#888" text-anchor="end">主觀</text><text x="${X(li - k) + 4}" y="14" font-size="10" fill="#888">策略</text>`}` : ''}</svg><p class="note"><span style="color:#d33">━ 我的組合</span>　<span style="color:#999">━ 0050（含配息）</span></p>`;
+  const last = A.length - 1, ld = new Date(A[last].d + 'T00:00:00');
+  const iso = d => d.toISOString().slice(0, 10);
+  const before = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
+  const mon = new Date(ld); mon.setDate(ld.getDate() - ((ld.getDay() + 6) % 7));
+  const yr = new Date(ld); yr.setFullYear(ld.getFullYear() - 1); yr.setDate(yr.getDate() + 1);
+  const R = { w: ['本週', before(iso(mon))], m: ['本月', before(A[last].d.slice(0, 7) + '-01')], y: ['近一年', before(iso(yr))], a: ['全部', 0] };
+  let rk = store.get('perfr', 'm'); if (!R[rk]) rk = 'm';
+  const k = R[rk][1], xs = A.slice(k), n = xs.length;
+  const sv = xs.map((p, i) => s[k + i] / s[k] - 1), b0 = xs.find(p => p.b), bv = xs.map(p => p.b && b0 ? p.b / b0.b - 1 : null);
+  const pc = (x, d = 2) => x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(d) + '%';
+  const r = sv[n - 1], bl = bv[n - 1], ex = bl == null ? null : r - bl;
+  const col = x => x == null ? 'var(--mute)' : x >= 0 ? 'var(--buy)' : 'var(--sell)';
+  let h = `<div class="phero"><div class="k">${R[rk][0]}報酬（${xs[0].d} 收盤起）</div><div class="pv" style="color:${col(r)}">${pc(r)}</div>
+    <div class="pk"><span>0050 <b style="color:${col(bl)}">${pc(bl)}</b></span><span>超額 <b style="color:${col(ex)}">${ex == null ? '—' : (ex >= 0 ? '+' : '') + (ex * 100).toFixed(2) + ' 個百分點'}</b></span></div></div>`;
+  const W = 340, Hh = 170, P = 10;
+  if (n >= 2) {
+    const all = sv.concat(bv.filter(x => x != null), [0]), lo = Math.min(...all), hi = Math.max(...all), rg = (hi - lo) || 0.01;
+    const X = i => P + i * (W - 2 * P) / (n - 1), Y = v => 14 + (hi - v) / rg * (Hh - 28);
+    const line = (a, c, w) => `<polyline fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" points="${a.map((v, i) => v == null ? '' : X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ')}"/>`;
+    h += `<div class="ptip" id="ptip">按住或滑過圖表，看每一天的報酬</div>
+      <svg id="pchart" viewBox="0 0 ${W} ${Hh}" style="width:100%;touch-action:none;display:block;user-select:none;-webkit-user-select:none" role="img" aria-label="${R[rk][0]}累積報酬：我的組合與 0050">
+      <line x1="${P}" x2="${W - P}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)" stroke-dasharray="3 3"/>
+      <text x="${W - P}" y="10" font-size="9" fill="var(--mute)" text-anchor="end">${pc(hi)}</text><text x="${W - P}" y="${Hh - 2}" font-size="9" fill="var(--mute)" text-anchor="end">${pc(lo)}</text>
+      ${line(bv, '#9a9a9a', 1.6)}${line(sv, '#e8920c', 2.4)}
+      <g id="pcur" style="display:none"><line id="pcl" y1="4" y2="${Hh - 4}" stroke="var(--mute)" stroke-width="1"/><circle id="pcb" r="3.5" fill="#9a9a9a"/><circle id="pcs" r="4.5" fill="#e8920c" stroke="var(--card)" stroke-width="2"/></g></svg>
+      <div class="pax"><span>${xs[0].d.slice(5)}</span><span><b style="color:#e8920c">━</b> 我的組合　<b style="color:#9a9a9a">━</b> 0050（含配息）</span><span>${xs[n - 1].d.slice(5)}</span></div>`;
+    window._pchart = { X, Y, n, sv, bv, xs, pc, W };
   }
-  h += `<p class="note">已記錄 ${A.length} 天。存入／提出的錢不算進報酬。只有打開 App 的日子會記錄，沒打開的日子會跳過，不影響累積計算。</p>`;
+  h += `<div class="prg">${Object.entries(R).map(([kk, v]) => `<button data-r="${kk}" class="${kk === rk ? 'on' : ''}">${v[0]}</button>`).join('')}</div>`;
+  h += `<p class="note">已記錄 ${A.length} 天。存入／提出的錢不算進報酬；只有打開 App 的日子會記錄，沒打開的日子會跳過，不影響累積計算。</p>`;
   el.innerHTML = h;
+  el.querySelectorAll('.prg button').forEach(bt => bt.onclick = () => { store.set('perfr', bt.dataset.r); renderPerf() });
+  const svg = $('#pchart'); if (!svg) return;
+  const show = ev => { const C = window._pchart, rc = svg.getBoundingClientRect(), x = (ev.clientX - rc.left) / rc.width * C.W;
+    const i = Math.max(0, Math.min(C.n - 1, Math.round((x - 10) / (C.W - 20) * (C.n - 1))));
+    $('#pcur').style.display = ''; ['x1', 'x2'].forEach(a => $('#pcl').setAttribute(a, C.X(i)));
+    $('#pcs').setAttribute('cx', C.X(i)); $('#pcs').setAttribute('cy', C.Y(C.sv[i]));
+    if (C.bv[i] != null) { $('#pcb').style.display = ''; $('#pcb').setAttribute('cx', C.X(i)); $('#pcb').setAttribute('cy', C.Y(C.bv[i])) } else $('#pcb').style.display = 'none';
+    const e = C.bv[i] == null ? null : C.sv[i] - C.bv[i];
+    $('#ptip').innerHTML = `<b>${C.xs[i].d}</b>　我的 <b style="color:#e8920c">${C.pc(C.sv[i])}</b>　0050 <b>${C.pc(C.bv[i])}</b>　超額 <b>${e == null ? '—' : (e >= 0 ? '+' : '') + (e * 100).toFixed(2) + 'pp'}</b>` };
+  svg.addEventListener('pointerdown', ev => { svg.setPointerCapture(ev.pointerId); show(ev) });
+  svg.addEventListener('pointermove', show);
 }
 
 function collapse(el, rowsHtml, n = 2) {
