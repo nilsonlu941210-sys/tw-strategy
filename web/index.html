@@ -567,8 +567,17 @@ function renderDT() {
     <span class="k">型態</span><span>${r.trend}｜收在當日${r.pos > 0.7 ? '高檔' : r.pos < 0.3 ? '低檔' : '中間'}｜5 日 ${pct(r.r5)}</span>
     <span class="k">當沖</span><span>${r.short_ok || '—'}｜每檔 ${r.tick} 元，賺 ${r.ticks} 檔才打平</span></div></div>`));
 }
-fetch('signals.json?t=' + Date.now(), {cache: 'no-store'}).then(r => r.json()).then(j => { S = j; render() })
-  .catch(() => { $('#sub').textContent = '讀取資料失敗，請稍後重新整理' });
+// 讀取資料：15 秒沒回應就改用手機裡的備份，避免一直卡在「載入中」
+function loadSignals(n = 0) {
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 15000);
+  fetch('signals.json?t=' + Date.now(), {cache: 'no-store', signal: ac.signal}).then(r => { clearTimeout(to); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
+    .then(j => { S = j; try { store.set('lastS', j) } catch (e) {} ; try { render() } catch (e) { $('#sub').innerHTML = '畫面計算出錯：' + e.message + '　<button onclick="location.reload()">重新整理</button>'; console.error(e) } })
+    .catch(e => { clearTimeout(to); const old = store.get('lastS', null);
+      if (old && !S) { S = old; try { render() } catch (x) {} ; $('#sub').innerHTML = `網路讀取失敗，先顯示手機裡 ${old.date} 的資料（不要照著買賣）　<button onclick="location.reload()">重試</button>` }
+      else if (n < 1) setTimeout(() => loadSignals(n + 1), 3000);
+      else $('#sub').innerHTML = '讀取資料失敗　<button onclick="location.reload()">重新整理</button>' });
+}
+loadSignals();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
