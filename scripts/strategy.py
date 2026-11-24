@@ -223,9 +223,15 @@ def fetch_tpex(day):
     return pd.DataFrame([(str(r[0]).strip(), _num(r[2]), _num(r[3]), _num(r[9]), _num(r[8]), not np.isfinite(_num(r[3]))) for r in data],
                         columns=['code', 'close', 'chg', 'money', 'vol', 'exdiv'])
 
+def save_etf_close(st, df):   # 所有 ETF 最新收盤價（只給 App 估自行操作部位的市值，不進股票池）
+    e = df[[bool(re.fullmatch(r'00\d{2,4}[A-Z]?', str(c))) for c in df.index]]
+    st.setdefault('etf_close', {}).update({c: float(v) for c, v in e.close.items() if v > 0})
+
+
 def append_day(st, day, df):
     adj, money, close = st['adj'], st['money'], st['close']
     df = df[df.close > 0].drop_duplicates('code').set_index('code')
+    save_etf_close(st, df)
     df = df[[bool(re.fullmatch(r'[1-9]\d{3}', c)) or c == CORE or c in DEF or c in GOLD_ALT or c == BENCH for c in df.index]]
     new_cols = list(df.index.difference(adj.columns))
     if new_cols:

@@ -41,6 +41,7 @@ if added == 0:   # 檢查資料來源是否正常：用最後一個已知交易�
         chk_tw = fetch_twse(last); time.sleep(4); chk_tp = fetch_tpex(last)
         print(f'  檢查：{last.date()} 證交所 {0 if chk_tw is None else len(chk_tw)} 筆、櫃買 {0 if chk_tp is None else len(chk_tp)} 筆')
         both = pd.concat([chk_tw, chk_tp]).drop_duplicates('code').set_index('code')
+        save_etf_close(st, both[both.close > 0])
         cl = st['close'].iloc[-1]; m = both.index.intersection(cl.dropna().index)
         diff = (both.loc[m, 'close'] - cl[m]).abs()
         print(f'  檢查：收盤價與已存資料相符 {int((diff < 1e-6).sum())}/{len(m)} 檔')
@@ -112,7 +113,7 @@ out = dict(
     pool=pool_info,
     auto_nobuy=st.get('hard_events', {}),
     bench=(dict(c=BENCH, adj=f(st['adj'][BENCH].ffill().iloc[-1], 6)) if BENCH in st['adj'].columns and st['adj'][BENCH].notna().any() else None),
-    prices={c: f(v, 2) for c, v in px.dropna().items()},
+    prices={**{c: f(v, 2) for c, v in st.get('etf_close', {}).items()}, **{c: f(v, 2) for c, v in px.dropna().items()}},
     names={c: nm(c) for c in px.dropna().index},
     history=st['history'], added_days=log,
     latest_revenue=str(st['revenue'].assign(k=st['revenue'].revenue_year * 100 + st['revenue'].revenue_month).k.max()),
