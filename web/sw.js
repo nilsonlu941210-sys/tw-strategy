@@ -1,6 +1,6 @@
 // 網路優先：有網路就拿最新的，沒網路才用快取
 // v2（2026-11-07）：signals.json 一律存成同一個鍵，離線時拿到的是「最近一次」而不是最舊的一份；啟用時清掉舊快取
-const CACHE = 'v3';   // v3（2026-11-23）：網路 8 秒沒回應就先用快取，避免卡住
+const CACHE = 'v4';   // v4（2026-11-25）：加入「自行操作」持股
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

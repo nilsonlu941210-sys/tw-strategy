@@ -28,6 +28,7 @@ header h1{font-size:20px;margin:4px 0 2px}header .sub{color:var(--mute);font-siz
 details summary{cursor:pointer;color:var(--mute);font-size:14px;margin-top:6px}
 input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
 .hrow{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin:6px 0;align-items:center}
+.hrow.h4{grid-template-columns:1fr 1fr auto 40px}.mchk{font-size:13px;color:var(--mute);display:flex;align-items:center;gap:3px;white-space:nowrap}
 button{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(--btn);color:var(--btn-ink);cursor:pointer}
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}button.x{padding:6px 0;background:transparent;color:var(--mute);border:1px solid var(--line)}
 .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -96,6 +97,7 @@ main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   <div id="fixlist"></div>
   <div class="note" style="margin-top:12px">衛星與其他股票</div>
   <div style="margin-top:6px" id="hlist"></div>
+  <p class="note">勾「自行」＝你自己操作的部位（例如反一）：照收盤價算進總資產和績效，但策略不會叫你買賣，也不占衛星名額；核心、衛星的比例只用扣掉它之後的資金計算。</p>
   <p class="note" id="autonote"></p>
   <div class="btns">
     <button class="ghost" id="addRow">＋ 新增一檔</button>
@@ -224,13 +226,14 @@ function renderEditor() {
     <input data-fix="${c}" value="${sh(c) || ''}" placeholder="股數" type="number" inputmode="decimal" step="any"></div>`).join('')
     + `<div class="hrow"><div style="flex:1;align-self:center;color:var(--mute)">核心加碼時買</div><select id="coresel" style="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 6px">${CORES.map(k => `<option value="${k}"${k === CORESEL ? ' selected' : ''}>${k}</option>`).join('')}</select></div>`;
   OTH = H.filter(h => !isFix(h.c));
-  $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow">
+  $('#hlist').innerHTML = OTH.map((h, i) => `<div class="hrow h4">
     <input data-i="${i}" data-k="c" value="${h.c}" placeholder="代號（例 2330）" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <input data-i="${i}" data-k="s" value="${h.s || ''}" placeholder="股數" type="number" inputmode="decimal" step="any">
+    <label class="mchk"><input type="checkbox" data-i="${i}" data-k="m"${h.m ? ' checked' : ''}>自行</label>
     <button class="x" data-del="${i}" aria-label="刪除">✕</button></div>`).join('');
 }
 function readEditor() {
-  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; OTH[i][el.dataset.k] = el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
+  document.querySelectorAll('#hlist input').forEach(el => { const i = +el.dataset.i; OTH[i][el.dataset.k] = el.dataset.k === 'm' ? (el.checked ? 1 : 0) : el.dataset.k === 's' ? (+el.value || 0) : el.value.trim().toUpperCase() });
   const fx = [...document.querySelectorAll('#fixlist input')].map(el => ({c: el.dataset.fix, s: +el.value || 0})).filter(h => h.s > 0);
   // 若在下方又填了固定部位的代號，合併到上方
   OTH.filter(h => isFix(h.c)).forEach(h => { const f = fx.find(x => x.c === h.c); if (f) f.s += h.s || 0; else if (h.s > 0) fx.push({c: h.c, s: h.s}) });
@@ -245,7 +248,8 @@ $('#hlist').addEventListener('click', e => { const d = e.target.dataset.del; if 
 $('#addRow').onclick = () => { readEditor(); H.push({c: '', s: 0, nw: 1}); renderEditor() };
 const heldMap = () => { const m = {}; H.forEach(h => { if (h.c && h.s > 0) m[h.c] = (m[h.c] || 0) + h.s }); return m };
 let TR = store.get('trades', {lots: {}, closed: []});
-const isSat = c => !isFix(c) && !(S && S.params && ((S.params.defs || {})[c] != null || (S.params.gold_alt || {})[c] != null || (S.params.other || {})[c] != null));
+const isMan = c => H.some(h => h.c === c && h.m);
+const isSat = c => !isFix(c) && !isMan(c) && !(S && S.params && ((S.params.defs || {})[c] != null || (S.params.gold_alt || {})[c] != null || (S.params.other || {})[c] != null));
 function logTrades(old, now) {   // 依持股變化推算交易（以資料日收盤價估算成交價，含手續費與證交稅）
   if (!S) return;
   const codes = new Set([...Object.keys(old), ...Object.keys(now)]);
@@ -306,11 +310,11 @@ showTab(location.hash === '#about' ? 'about' : ['home', 'sig', 'hold', 'about'].
 function render() {
   if (!S) return;
   const P = S.prices, core = CORESEL, coreName = CORE_OPTS[core] || S.core.name, coreOther = CORES.find(c => c !== core), DEFW = S.params.defs || {}, DEFS0 = Object.keys(DEFW), FREE = S.params.free_w || 0;
-  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {}, OTH2 = Object.keys(OTHN), DEFS = DEFS0.concat(GALT, OTH2);
+  const GALT = Object.keys(S.params.gold_alt || {'00635U': 1}), OTHN = S.params.other || {}, OTH2 = Object.keys(OTHN), MAN = [...new Set(H.filter(h => h.m && h.c).map(h => h.c))], DEFS = DEFS0.concat(GALT, OTH2, MAN);
   const held = {}; H.forEach(h => { if (h.c && h.s > 0) held[h.c] = (held[h.c] || 0) + h.s });
   let stockVal = 0, missing = [];
   for (const c in held) { if (P[c] != null) stockVal += held[c] * P[c]; else if (c !== core && !DEFS.includes(c) && !isFix(c)) missing.push(c) }
-  const total = CASH + stockVal;
+  const allTotal = CASH + stockVal, manVal = MAN.reduce((a, c) => a + (held[c] || 0) * (P[c] || 0), 0), total = allTotal - manVal;   // total＝策略資金（扣掉自行操作部位）
   const sat = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && !isFix(c) && !FIXED.includes(c));
   const fixedHeld = Object.keys(held).filter(c => c !== core && !DEFS.includes(c) && FIXED.includes(c));
   const sells = [], holds = [];
@@ -345,7 +349,7 @@ function render() {
   $('#sub').textContent = `資料日期 ${S.date} 收盤｜下一個交易日執行｜更新於 ${S.generated}`;
   const coreVal = CORES.reduce((a, c) => a + (held[c] || 0) * (P[c] || 0), 0);
   $('#summary').innerHTML = `<div class="kpi">
-    <div><div class="k">總資產</div><div class="v">${fmt(total)}</div></div>
+    <div><div class="k">總資產</div><div class="v">${fmt(allTotal)}</div>${manVal ? `<div class="k">策略 ${fmt(total)}＋自行 ${fmt(manVal)}</div>` : ''}</div>
     <div><div class="k">衛星持股</div><div class="v">${holds.length + sells.length + fixedHeld.length} / ${S.params.sat_n}</div></div>
     <div><div class="k">核心比重</div><div class="v">${total ? (coreVal / total * 100).toFixed(1) + '%' : '—'}</div></div></div>
     ${total ? (() => { const want = FREE * total, free = Math.min(CASH, want), stratCash = Math.max(0, CASH - want);
@@ -432,8 +436,9 @@ function render() {
   };
   $('#holds').innerHTML = holds.length ? holds.map(h => row(h.n, h.c, `營收 ${pct(h.rnh)}｜距一年高點 ${pct(h.h250 - 1)}${stopInfo(h)}`, `${fmt(held[h.c])} 股`, P[h.c] ? `收盤 ${fmt(P[h.c], 2)}` : '')).join('') : (fixedHeld.length ? '' : '<div class="empty">目前沒有衛星持股</div>');
   $('#holds').innerHTML += OTH2.filter(c => held[c]).map(c => row(OTHN[c] || c, c, `其他持股（不受策略管理，不會叫你賣）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${+held[c].toFixed(4)} 股`, P[c] ? `約 ${fmt(held[c] * P[c])} 元（美元收盤×匯率）` : '價格等下一次更新')).join('');
+  $('#holds').innerHTML += MAN.filter(c => held[c]).map(c => row(S.names[c] || c, S.names[c] ? c : '', `自行操作（不受策略管理，不會叫你買賣）｜佔總資產 ${allTotal && P[c] ? (held[c] * P[c] / allTotal * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}｜約 ${fmt(held[c] * P[c])} 元` : '價格等下一次更新')).join('');
   $('#holds').innerHTML += fixedHeld.map(c => row(S.names[c], c, `固定持有（不賣，佔 1 個名額）｜目前 ${total && P[c] ? (held[c] * P[c] / total * 100).toFixed(1) : '—'}%`, `${fmt(held[c])} 股`, P[c] ? `收盤 ${fmt(P[c], 2)}` : '')).join('');
-  try { snap(total); renderPerf() } catch (e) { console.log(e) }
+  try { snap(allTotal, manVal, MAN, held, P); renderPerf() } catch (e) { console.log(e) }
   try { renderShadow() } catch (e) { console.log(e) }
   try { renderCredit() } catch (e) { console.log(e) }
   try { seedLots(); fixTrims(); renderStats() } catch (e) { console.log(e) }
@@ -444,12 +449,16 @@ function render() {
 renderEditor();
 
 
-function snap(total) {
+function snap(total, manVal = 0, MAN = [], held = {}, P = {}) {
   if (!S || !total || (Date.now() - Date.parse(S.generated.replace(' ', 'T') + ':00+08:00')) > 4 * 864e5) return;   // 舊資料不記
   const d = S.date, b = S.bench && S.bench.adj;
   let x = PERF.find(p => p.d === d);
   if (!x) { x = {d, f: 0}; PERF.push(x); PERF.sort((a, c) => a.d < c.d ? -1 : 1) }
   x.v = Math.round(total); if (b) x.b = b;
+  // 自行操作部位：記股數與收盤價（含前一筆有、今天已賣掉的），用來把績效拆成「策略」和「自行」
+  const prev = PERF.filter(p => p.d < d && p.v > 0).pop(), codes = new Set(MAN.concat(Object.keys((prev && prev.mh) || {})));
+  const mh = {}; codes.forEach(c => { if (P[c] != null) mh[c] = [MAN.includes(c) ? (held[c] || 0) : 0, P[c]] });
+  if (Object.keys(mh).length) { x.mh = mh; x.m = Math.round(manVal) } else { delete x.mh; delete x.m }
   if (PENDFLOW) { x.f = (x.f || 0) + PENDFLOW; PENDFLOW = 0 }
   store.set('perf', PERF);
 }
@@ -504,6 +513,9 @@ function renderPerf() {
   const A = PERF.filter(p => p.v > 0), el = $('#perf');
   if (A.length < 2) { el.innerHTML = `<p class="note">${A.length ? `已從 ${A[0].d} 開始記錄。` : ''}之後每天收盤後打開 App，就會累積你的績效並和 0050 比較。</p>`; return }
   const s = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v; s.push(s[i - 1] * (A[i].v - (A[i].f || 0)) / pv) }
+  // 只算策略部位：當天總損益扣掉自行部位損益（前一天股數 ×（今天收盤 − 前一天收盤）），再除以前一天的策略資金
+  const mpnl = A.map((p, i) => { if (!i || !A[i - 1].mh) return 0; let t = 0; for (const [c, [sh, px]] of Object.entries(A[i - 1].mh)) { const q = p.mh && p.mh[c]; if (sh && q) t += sh * (q[1] - px) } return t });
+  const s2 = [1]; for (let i = 1; i < A.length; i++) { const pv = (A[i - 1].imp && !A[i].imp && A[i - 1].va) ? A[i - 1].va : A[i - 1].v, base = pv - (A[i - 1].m || 0); s2.push(s2[i - 1] * (base > 0 ? 1 + (A[i].v - (A[i].f || 0) - pv - mpnl[i]) / base : 1)) }
   const last = A.length - 1, ld = new Date(A[last].d + 'T00:00:00');
   const iso = d => d.toISOString().slice(0, 10);
   const before = pre => { let i = -1; A.forEach((p, j) => { if (p.d < pre) i = j }); return i < 0 ? 0 : i };
@@ -515,22 +527,23 @@ function renderPerf() {
   const sv = xs.map((p, i) => s[k + i] / s[k] - 1), b0 = xs.find(p => p.b), bv = xs.map(p => p.b && b0 ? p.b / b0.b - 1 : null);
   const pc = (x, d = 2) => x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(d) + '%';
   const r = sv[n - 1], bl = bv[n - 1], ex = bl == null ? null : r - bl;
+  const hasM = xs.some(p => p.mh), s2v = hasM ? xs.map((p, i) => s2[k + i] / s2[k] - 1) : null, mSum = mpnl.slice(k + 1).reduce((a, x) => a + x, 0);
   const col = x => x == null ? 'var(--mute)' : x >= 0 ? 'var(--buy)' : 'var(--sell)';
   let h = `<div class="phero"><div class="k">${R[rk][0]}報酬（${xs[0].d} 收盤起）</div><div class="pv" style="color:${col(r)}">${pc(r)}</div>
-    <div class="pk"><span>0050 <b style="color:${col(bl)}">${pc(bl)}</b></span><span>超額 <b style="color:${col(ex)}">${ex == null ? '—' : (ex >= 0 ? '+' : '') + (ex * 100).toFixed(2) + ' 個百分點'}</b></span></div></div>`;
+    <div class="pk"><span>0050 <b style="color:${col(bl)}">${pc(bl)}</b></span><span>超額 <b style="color:${col(ex)}">${ex == null ? '—' : (ex >= 0 ? '+' : '') + (ex * 100).toFixed(2) + ' 個百分點'}</b></span></div>${hasM ? `<div class="pk"><span>只算策略 <b style="color:${col(s2v[n - 1])}">${pc(s2v[n - 1])}</b></span><span>自行操作 <b style="color:${col(mSum)}">${mSum >= 0 ? '+' : ''}${fmt(Math.round(mSum))} 元</b></span></div>` : ''}</div>`;
   const W = 340, Hh = 170, P = 10;
   if (n >= 2) {
-    const all = sv.concat(bv.filter(x => x != null), [0]), lo = Math.min(...all), hi = Math.max(...all), rg = (hi - lo) || 0.01;
+    const all = sv.concat(bv.filter(x => x != null), [0], s2v || []), lo = Math.min(...all), hi = Math.max(...all), rg = (hi - lo) || 0.01;
     const X = i => P + i * (W - 2 * P) / (n - 1), Y = v => 14 + (hi - v) / rg * (Hh - 28);
     const line = (a, c, w) => `<polyline fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" points="${a.map((v, i) => v == null ? '' : X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ')}"/>`;
     h += `<div class="ptip" id="ptip">按住或滑過圖表，看每一天的報酬</div>
       <svg id="pchart" viewBox="0 0 ${W} ${Hh}" style="width:100%;touch-action:none;display:block;user-select:none;-webkit-user-select:none" role="img" aria-label="${R[rk][0]}累積報酬：我的組合與 0050">
       <line x1="${P}" x2="${W - P}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)" stroke-dasharray="3 3"/>
       <text x="${W - P}" y="10" font-size="9" fill="var(--mute)" text-anchor="end">${pc(hi)}</text><text x="${W - P}" y="${Hh - 2}" font-size="9" fill="var(--mute)" text-anchor="end">${pc(lo)}</text>
-      ${line(bv, '#9a9a9a', 1.6)}${line(sv, '#e8920c', 2.4)}
+      ${line(bv, '#9a9a9a', 1.6)}${s2v ? line(s2v, '#3b82c4', 1.6).replace('/>', ' stroke-dasharray="4 3"/>') : ''}${line(sv, '#e8920c', 2.4)}
       <g id="pcur" style="display:none"><line id="pcl" y1="4" y2="${Hh - 4}" stroke="var(--mute)" stroke-width="1"/><circle id="pcb" r="3.5" fill="#9a9a9a"/><circle id="pcs" r="4.5" fill="#e8920c" stroke="var(--card)" stroke-width="2"/></g></svg>
-      <div class="pax"><span>${xs[0].d.slice(5)}</span><span><b style="color:#e8920c">━</b> 我的組合　<b style="color:#9a9a9a">━</b> 0050（含配息）</span><span>${xs[n - 1].d.slice(5)}</span></div>`;
-    window._pchart = { X, Y, n, sv, bv, xs, pc, W };
+      <div class="pax"><span>${xs[0].d.slice(5)}</span><span><b style="color:#e8920c">━</b> 整個帳戶　${s2v ? '<b style="color:#3b82c4">┅</b> 只算策略　' : ''}<b style="color:#9a9a9a">━</b> 0050（含配息）</span><span>${xs[n - 1].d.slice(5)}</span></div>`;
+    window._pchart = { X, Y, n, sv, bv, xs, pc, W, s2v };
   }
   h += `<div class="prg">${Object.entries(R).map(([kk, v]) => `<button data-r="${kk}" class="${kk === rk ? 'on' : ''}">${v[0]}</button>`).join('')}</div>`;
   h += `<p class="note">已記錄 ${A.length} 天。存入／提出的錢不算進報酬；只有打開 App 的日子會記錄，沒打開的日子會跳過，不影響累積計算。</p>`;
@@ -543,7 +556,7 @@ function renderPerf() {
     $('#pcs').setAttribute('cx', C.X(i)); $('#pcs').setAttribute('cy', C.Y(C.sv[i]));
     if (C.bv[i] != null) { $('#pcb').style.display = ''; $('#pcb').setAttribute('cx', C.X(i)); $('#pcb').setAttribute('cy', C.Y(C.bv[i])) } else $('#pcb').style.display = 'none';
     const e = C.bv[i] == null ? null : C.sv[i] - C.bv[i];
-    $('#ptip').innerHTML = `<b>${C.xs[i].d}</b>　我的 <b style="color:#e8920c">${C.pc(C.sv[i])}</b>　0050 <b>${C.pc(C.bv[i])}</b>　超額 <b>${e == null ? '—' : (e >= 0 ? '+' : '') + (e * 100).toFixed(2) + 'pp'}</b>` };
+    $('#ptip').innerHTML = `<b>${C.xs[i].d}</b>　我的 <b style="color:#e8920c">${C.pc(C.sv[i])}</b>　${C.s2v ? `策略 <b style="color:#3b82c4">${C.pc(C.s2v[i])}</b>　` : ''}0050 <b>${C.pc(C.bv[i])}</b>　超額 <b>${e == null ? '—' : (e >= 0 ? '+' : '') + (e * 100).toFixed(2) + 'pp'}</b>` };
   svg.addEventListener('pointerdown', ev => { svg.setPointerCapture(ev.pointerId); show(ev) });
   svg.addEventListener('pointermove', show);
 }
