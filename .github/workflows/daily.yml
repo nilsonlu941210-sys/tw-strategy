@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '35 7 * * 1-5'   # 台北 15:35
     - cron: '30 10 * * 1-5'  # 台北 18:30（補跑：前一次資料不完整或延遲時）
+    # 2026-11-26：GitHub 排程常延遲或整個漏跑，多排幾次；資料已是最新時只會檢查、不會重複加天數
+    - cron: '5 8 * * 1-5'    # 台北 16:05
+    - cron: '5 9 * * 1-5'    # 台北 17:05
+    - cron: '5 11 * * 1-5'   # 台北 19:05
+    - cron: '5 13 * * 1-5'   # 台北 21:05
   workflow_dispatch:
   push:
     branches: [main]
@@ -91,6 +96,13 @@ jobs:
         with:
           path: site
       - id: deploy
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: 發布失敗時等一分鐘再試（GitHub 偶爾找不到剛上傳的網頁檔）
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+      - id: deploy2
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       - name: 保持排程啟用（GitHub 會停用 60 天沒動靜的排程）
